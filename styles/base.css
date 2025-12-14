@@ -1,0 +1,166 @@
+/* ============================================================
+   BTS ECHO — BASE (VARIABLES GLOBALES)
+   Tema Classic + Army Mode — SIN afectar diseño original
+============================================================ */
+
+
+/* ============================================================
+   1. VARIABLES POR DEFECTO (CLASSIC MODE)
+============================================================ */
+
+:root {
+    /* Texto */
+    --text-color: #ffffff;
+
+    /* Fondo general (oscuro) */
+    --bg-main: #0a0a0f;
+    --bg-header: rgba(10, 10, 15, 0.75);
+    --bg-card: rgba(25, 25, 35, 0.65);
+
+    /* Gradientes base */
+    --bg-1: #0a0a0f;
+    --bg-2: #161622;
+
+    /* Acentos estándar (morado suave/azulado) */
+    --accent: #8c73ff;
+    --accent-light: #bfa3ff;
+
+    /* Para efectos RGB dinámicos */
+    --accent-rgb: 140, 115, 255;
+    --white-rgb: 255, 255, 255;
+
+    /* Sombras */
+    --shadow-soft: 0 0 12px rgba(var(--accent-rgb), 0.25);
+    --shadow-strong: 0 0 35px rgba(var(--accent-rgb), 0.65);
+}
+
+
+
+/* ============================================================
+   2. ARMY MODE — COLORES DINÁMICOS
+   (estos colores se activan cuando el body tiene la clase class="army-theme")
+============================================================ */
+
+body.army-theme {
+
+    /* Texto */
+    --text-color: #ffffff;
+
+    /* Fondos morados */
+    --bg-main: #1a0524;
+    --bg-header: rgba(35, 0, 55, 0.65);
+    --bg-card: rgba(40, 0, 60, 0.50);
+
+    /* Gradiente morado profundo */
+    --bg-1: #2a003f;
+    --bg-2: #150025;
+
+    /* Acentos Army */
+    --accent: #d29bff;      /* Morado pastel */
+    --accent-light: #e6b8ff;
+
+    /* RGB para efectos */
+    --accent-rgb: 210, 155, 255;
+
+    /* Sombras adaptativas */
+    --shadow-soft: 0 0 14px rgba(var(--accent-rgb), 0.30);
+    --shadow-strong: 0 0 40px rgba(var(--accent-rgb), 0.75);
+}
+
+
+
+/* ============================================================
+   3. BACKGROUND GENERAL DEL BODY
+   (tu diseño original respetado al 100%)
+============================================================ */
+
+body {
+    margin: 0;
+    padding: 0;
+
+    background: var(--bg-main);
+    color: var(--text-color);
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    transition: background 0.35s ease, color 0.35s ease;
+}
+
+
+/* ============================================================
+   LOGIN MODAL 
+============================================================ */
+
+.auth-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.auth-modal.hidden {
+    display: none;
+}
+
+.auth-box {
+    background: rgba(30, 30, 45, 0.95);
+    padding: 35px 40px;
+    border-radius: 18px;
+    width: 340px;
+    text-align: center;
+    box-shadow: 0 0 25px rgba(164,139,255,0.4);
+    position: relative;
+}
+
+.auth-box input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    border-radius: 8px;
+    color: white;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    background: #a48bff;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+}
+
+.auth-btn.secondary {
+    background: rgba(255,255,255,0.18);
+}
+
+.close-auth {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    cursor: pointer;
+    font-size: 22px;
+    color: #fff;
+}
+
+/* Eliminar scroll horizontal global */
+html, body {
+    overflow-x: hidden !important;
+}
+
+/* Evitar que algún contenedor desborde */
+* {
+    max-width: 100%;
+    box-sizing: border-box;
+}

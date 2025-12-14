@@ -1,0 +1,150 @@
+/* ============================================================
+   BTS ECHO — CONTENIDO PRINCIPAL (ARMY MODE READY)
+   Tarjetas, columnas, misiones y buttons outline
+   SOLO se cambiaron colores a variables. Diseño intacto.
+============================================================ */
+
+
+/* ============================================================
+   1. GRID PRINCIPAL
+============================================================ */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1.2fr;
+    gap: 2rem;
+    margin-top: 2.5rem;
+    width: 100%;
+    padding: 0 40px;
+}
+
+
+/* ============================================================
+   2. TARJETAS (BASE)
+============================================================ */
+.card {
+    background: var(--bg-card);   /* antes: rgba fijo */
+    border-radius: 14px;
+    padding: 1.2rem;
+
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+    transition: 0.25s ease;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 40px rgba(var(--accent-rgb), 0.45);
+}
+
+
+/* ============================================================
+   3. FEATURED ERA CARD
+============================================================ */
+.era-card {
+    display: grid;
+    grid-template-columns: 0.9fr 1.3fr;
+    gap: 1rem;
+}
+
+.era-image img {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
+.era-info h3 {
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.era-info p {
+    opacity: 0.9;
+    margin-bottom: 12px;
+}
+
+
+/* ============================================================
+   4. MISIONES
+============================================================ */
+.mission-card {
+    background: linear-gradient(
+        135deg,
+        rgba(var(--accent-rgb), 0.20),   /* antes: #8c73ff33 fijo */
+        rgba(var(--accent-rgb), 0.30)    /* antes: #6a9bff44 fijo */
+    );
+
+    border-left: 4px solid var(--accent);
+    padding: 1rem;
+    margin-bottom: 1rem;
+
+    border-radius: 12px;
+    backdrop-filter: blur(6px);
+
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.22);
+    transition: 0.25s ease;
+}
+
+.mission-card:hover {
+    background: linear-gradient(
+        135deg,
+        rgba(var(--accent-rgb), 0.35),
+        rgba(var(--accent-rgb), 0.40)
+    );
+
+    transform: translateY(-4px);
+    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.45);
+}
+
+
+/* ============================================================
+   5. BOTÓN OUTLINE
+============================================================ */
+.btn-outline {
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+
+    background: rgba(var(--white-rgb), 0.10);  /* antes valores fijos */
+    border: 2px solid rgba(var(--white-rgb), 0.85);
+    color: var(--text-color);
+
+    backdrop-filter: blur(6px);
+    transition: 0.25s ease;
+}
+
+.btn-outline:hover {
+    background: rgba(var(--white-rgb), 0.30);
+    color: #000; /* diseño original */
+    transform: translateY(-3px);
+}
+
+/* =======================================================
+   AJUSTE DE TIPOGRAFÍA PARA CARDS DE CONTENIDO
+======================================================= */
+
+.content-grid h2 {
+    font-size: 1.6rem !important;
+}
+
+.era-card h3,
+.mission-card h3 {
+    font-size: 1.3rem !important;
+}
+
+.era-card p,
+.mission-card p {
+    font-size: 1rem !important;
+}
+
+.btn-outline {
+    font-size: 0.9rem !important;
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    padding: 20px 5%;
+    width: 100%;
+    overflow: hidden;
+}

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>BTS Echo</title>
+
+    <!-- ============================================================
+         ESTILOS CORRECTAMENTE ORDENADOS
+         SOLO 2 ARCHIVOS: base.css (variables) + main.css (importador)
+    ============================================================ -->
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+
+<body>
+
+    <!-- ============================================================
+         1. HEADER PRINCIPAL
+    ============================================================ -->
+    <header class="main-header">
+        <div class="header-left">
+            <h1 class="logo">BTS Echo <span>💜</span></h1>
+        </div>
+
+        <nav class="header-nav">
+            <ul>
+                <li><a href="#">Eras y Línea de Tiempo</a></li>
+                <li><a href="#">Verso de Historias</a></li>
+                <li><a href="#">Laboratorio Creativo</a></li>
+                <li><a href="#">Centro Comunitario</a></li>
+                <li><a href="#">Estudio Musical</a></li>
+                <li><a href="#">Centro de Misiones</a></li>
+
+            </ul>
+        </nav>
+
+        <div class="header-right">
+            <button id="loginBtn" class="login-btn">Login</button>
+
+            <!-- 💜 IMPORTANTE: EL ID themeToggle RESTAURADO -->
+            <button id="themeToggle" class="theme-switch">Army Mode 💜</button>
+        </div>
+
+        <p id="welcomeUser" class="welcome-text"></p>
+    </header>
+
+
+    <!-- ============================================================
+         2. CHAT FLOTANTE
+    ============================================================ -->
+    <button id="chatToggle" class="chat-icon-btn">💬</button>
+
+    <div id="communityChat" class="community-chat">
+
+        <div class="chat-header">
+            <h3>Community Hub 💬</h3>
+            <span id="closeChat" class="close-chat">✖</span>
+        </div>
+
+        <!-- CONTENEDOR DE MENSAJES -->
+        <div class="chat-messages" id="chatMessages">
+            <!-- MENSAJES SIMULADOS -->
+            <div class="msg other">
+                <span class="user">ArmyPerú:</span>
+                <p>¿Ya escucharon el nuevo track de Jungkook? 🔥</p>
+            </div>
+
+            <div class="msg other">
+                <span class="user">MoonChild:</span>
+                <p>¡Está increíble! 💜</p>
+            </div>
+
+            <div class="msg other">
+                <span class="user">Starlight:</span>
+                <p>Voy por mi streaming 20 👀</p>
+            </div>
+        </div>
+
+        <!-- INPUT + BOTÓN -->
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Escribe un mensaje…">
+            <button id="chatSend">Enviar</button>
+        </div>
+    </div>
+
+
+
+    <!-- ============================================================
+         3. HERO (VIDEO + PERSONAJES + BOTONES)
+    ============================================================ -->
+    <section class="hero-video">
+        <video class="hero-video-element" autoplay muted loop>
+            <source src="Videos/Universo3.mp4" type="video/mp4">
+        </video>
+
+        <div class="hero-characters">
+            <button class="char-btn"></button>
+            <button class="char-btn"></button>
+            <button class="char-btn"></button>
+            <button class="char-btn"></button>
+            <button class="char-btn"></button>
+            <button class="char-btn"></button>
+            <button class="char-btn"></button>
+        </div>
+
+        <div class="hero-buttons">
+            <button id="enterEchoVerse" class="btn-hero">Explorar EchoVerse</button>
+            <button id="enterMissionMode" class="btn-hero btn-outline">Activar Modo Misión</button>
+
+
+        </div>
+
+    </section>
+
+
+    <!-- ============================================================
+         4. CONTENIDO PRINCIPAL
+    ============================================================ -->
+    <main class="page-wrapper">
+
+        <section class="content-grid">
+
+            <div class="column">
+                <h2>Era Destacada</h2>
+
+                <article class="card era-card">
+                    <div class="era-image">
+                        <img src="Imagenes/bts2.jpg" alt="Love Yourself Era">
+                    </div>
+
+                    <div class="era-info">
+                        <h3>LOVE YOURSELF ERA</h3>
+                        <p>Descubre más sobre esta era icónica.</p>
+                        <button class="btn-outline">Explorar Era</button>
+                    </div>
+                </article>
+            </div>
+
+            <div class="column">
+                <h2>Últimas Misiones</h2>
+
+                <article class="card mission-card">
+                    <h3>VOTE: MAMA 2025</h3>
+                    <p>Dream: New Jungkook Single</p>
+                </article>
+
+                <article class="card mission-card">
+                    <h3>STREAM: New Jungkook Single</h3>
+                    <p>Objetivo: 5M streams en 24 horas</p>
+                </article>
+
+                <article class="card mission-card">
+                    <h3>PROYECTO ARMY</h3>
+                    <p>Mensaje global de apoyo para BTS</p>
+
+                </article>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- ============================================================
+         5. LOGIN MODAL
+    ============================================================ -->
+    <div id="authModal" class="auth-modal hidden">
+        <div class="auth-box">
+            <h2>Bienvenido 💜</h2>
+
+            <input type="text" id="authName" placeholder="Tu nombre" />
+            <input type="password" id="authPass" placeholder="Contraseña" />
+
+            <button id="authLogin" class="auth-btn">Entrar</button>
+            <button id="authRegister" class="auth-btn secondary">Registrar</button>
+
+            <p id="authMessage"></p>
+
+            <span id="authClose" class="close-auth">✖</span>
+        </div>
+    </div>
+
+
+    <!-- ============================================================
+         6. SPOTIFY MINI-PLAYER
+    ============================================================ -->
+    <div id="playerBubble" class="player-bubble hidden">
+        <div class="player-content">
+            <button id="closeBubble" class="close-bubble">✖</button>
+
+            <iframe id="spotifyFrame"
+                    width="100%"
+                    height="160"
+                    frameborder="0"
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    loading="lazy"></iframe>
+        </div>
+    </div>
+
+
+    <!-- ============================================================
+         7. SCRIPTS ORDENADOS
+    ============================================================ -->
+
+    <!-- Datos -->
+    <script src="Script/members.js"></script>
+
+    <!-- Lógica principal -->
+    <script src="Script/script.js"></script>
+
+    <!-- Theme switch -->
+    <script src="Script/theme.js"></script>
+
+    <!-- Chat -->
+    <script src="Script/chat.js"></script>
+
+    <!-- Autenticación -->
+    <script src="Script/auth.js"></script>
+
+</body>
+
+</html>

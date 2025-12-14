@@ -1,0 +1,87 @@
+/* ============================================================
+   BTS ECHO — MAIN.CSS
+   Archivo maestro que importa todos los estilos del proyecto.
+   Totalmente compatible con Army Mode y sin modificar diseño.
+============================================================ */
+
+
+/* ============================================================
+   1. IMPORTACIÓN DE MÓDULOS DE ESTILO
+   (Ordenado según estructura visual de la página)
+============================================================ */
+
+@import url("header.css");
+@import url("hero.css");
+@import url("content.css");
+@import url("chat.css");
+@import url("player.css");
+
+
+
+/* ============================================================
+   2. AJUSTES GLOBALES
+   (Estos NO cambian diseño, solo aseguran coherencia visual)
+============================================================ */
+
+html, body {
+    margin: 0;
+    padding: 0;
+
+    background: var(--bg-main);
+    color: var(--text-color);
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    transition:
+        background 0.35s ease,
+        color      0.35s ease;
+}
+
+/* Contenedor global */
+.page-wrapper {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+
+
+/* ============================================================
+   3. BOTONES GENERALES (NO decorativos)
+============================================================ */
+
+button {
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   4. SCROLLBAR GLOBAL (mejor estética)
+============================================================ */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 6px;
+}
+
+
+
+/* ============================================================
+   5. TRANSICIONES EN MODO ARMY
+   (No altera diseño, solo suaviza cambios entre temas)
+============================================================ */
+
+body.army-theme,
+body {
+    transition:
+        background 0.4s ease,
+        color      0.4s ease,
+        box-shadow 0.4s ease;
+}
+

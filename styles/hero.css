@@ -1,0 +1,268 @@
+/* ============================================================
+   HERO — Fondo, personajes e iconos (ARMY Mode Ready)
+============================================================ */
+
+
+/* ============================================================
+   1. HERO VIDEO
+============================================================ */
+.hero-video {
+    width: 100%;
+    height: 650px;
+    position: relative;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-image: url("universo.jpg");
+    background-size: cover;
+    background-position: center;
+
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, black 90%, transparent);
+}
+
+.hero-video-element {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+
+/* ============================================================
+   2. BOTONES DEL HERO
+============================================================ */
+.hero-buttons {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    display: flex;
+    gap: 15px;
+    z-index: 30;
+}
+
+.btn-hero {
+    font-size: 1.1rem;
+    padding: 15px 35px;
+    border-radius: 40px;
+    font-weight: 700;
+
+    cursor: pointer;
+    min-width: 180px;
+
+    border: 2px solid transparent;
+    text-align: center;
+
+    background: linear-gradient(135deg, var(--accent-light), var(--accent));
+    color: var(--text-color);
+
+    box-shadow: var(--shadow-strong);
+
+    transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+
+.btn-hero.btn-outline {
+    background: rgba(var(--white-rgb), 0.15);
+    border: 2px solid rgba(var(--white-rgb), 0.95);
+    color: var(--text-color);
+    backdrop-filter: blur(6px);
+}
+
+.btn-hero:hover {
+    transform: translateY(-4px) scale(1.08);
+    filter: brightness(1.12);
+    box-shadow: 0 0 45px rgba(var(--accent-rgb), 1);
+}
+
+
+/* ============================================================
+   3. PERSONAJES SOBRE EL VIDEO
+============================================================ */
+.hero-characters {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    padding: 0 12%;
+    pointer-events: none;
+}
+
+/* Botón general */
+.char-btn {
+    position: relative;
+    background: none;
+    border: none;
+
+    cursor: pointer;
+    pointer-events: auto;
+
+    opacity: 0;
+    animation: popIn 0.7s ease forwards;
+
+    transition: filter 0.25s ease;
+}
+
+.char-inner {
+    transition: transform 0.25s ease;
+}
+
+.char-btn:hover .char-inner {
+    transform: scale(1.15);
+}
+
+/* Imagen del personaje — DISEÑO ORIGINAL */
+.char-btn img {
+    width: 150px;
+    height: auto;
+
+    padding: 10px;
+    border-radius: 20px;
+
+    /* Fondo original */
+    background: rgba(0, 0, 0, 0.3);
+
+    /* Sombra original pero adaptativa */
+    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.18);
+
+    animation: float 3s ease-in-out infinite;
+}
+
+/* Alturas en arco (no tocar) */
+.hero-characters .char-btn:nth-child(1) { margin-top: 12%; }
+.hero-characters .char-btn:nth-child(2) { margin-top: 10%; }
+.hero-characters .char-btn:nth-child(3) { margin-top: 8%; }
+.hero-characters .char-btn:nth-child(4) { margin-top: 6%; }
+.hero-characters .char-btn:nth-child(5) { margin-top: 8%; }
+.hero-characters .char-btn:nth-child(6) { margin-top: 10%; }
+.hero-characters .char-btn:nth-child(7) { margin-top: 12%; }
+
+/* Nombre + canción */
+.char-label {
+    position: absolute;
+    bottom: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    width: max-content;
+    font-size: 0.85rem;
+
+    background: rgba(0,0,0,0.55); /* Fondo original */
+    color: var(--text-color);
+
+    white-space: nowrap;
+    pointer-events: none;
+
+    opacity: 0;
+    transform: translateY(10px);
+    transition: 0.4s ease;
+}
+
+.char-btn:hover .char-label {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.char-label strong {
+    font-size: 0.95rem;
+    color: var(--accent-light);
+}
+
+
+/* ============================================================
+   4. ICONOS SPOTIFY + YOUTUBE
+============================================================ */
+.char-icons-inline {
+    position: absolute;
+
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+
+    opacity: 0;
+    pointer-events: none;
+
+    transition: opacity 0.25s ease;
+    z-index: 5;
+}
+
+.char-inner:hover .char-icons-inline {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.char-audio-icon,
+.char-youtube-icon {
+    font-size: 22px;
+    background: rgba(0, 0, 0, 0.55);  /* Fondo original */
+    color: var(--text-color);
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+
+    transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.char-audio-icon:hover,
+.char-youtube-icon:hover {
+    background: rgba(var(--accent-rgb), 0.35);
+    transform: scale(1.18);
+}
+
+
+/* ============================================================
+   5. ANIMACIONES
+============================================================ */
+@keyframes float {
+    0%   { transform: translateY(0px); }
+    50%  { transform: translateY(-12px); }
+    100% { transform: translateY(0px); }
+}
+
+@keyframes popIn {
+    0%   { opacity: 0; transform: translateY(40px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ============================================================
+   6. EFECTO DE BRILLO DETRÁS DEL PERSONAJE
+============================================================ */
+.char-btn::before {
+    content: "";
+    position: absolute;
+
+    width: 160%;
+    height: 160%;
+    top: -20%;
+    left: -20%;
+
+    border-radius: 50%;
+
+    background: radial-gradient(
+        rgba(var(--accent-rgb), 0.25),
+        transparent 70%
+    );
+
+    filter: blur(40px);
+    opacity: 0;
+    transition: 0.4s ease;
+    z-index: -1;
+}
+
+.char-btn:hover::before {
+    opacity: 1;
+}

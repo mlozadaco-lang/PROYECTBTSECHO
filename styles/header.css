@@ -1,0 +1,135 @@
+/* ============================================================
+   BTS ECHO — HEADER (ARMY MODE READY)
+   Diseño original 100% respetado — Solo colores dinámicos
+============================================================ */
+
+
+/* ============================================================
+   1. HEADER GENERAL
+============================================================ */
+.main-header {
+    width: 100%;
+    padding: 18px 40px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+
+    background: var(--bg-header); /* antes fondo fijo */
+    backdrop-filter: blur(8px);
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    transition: background 0.25s ease;
+}
+
+
+/* ============================================================
+   2. LOGO
+============================================================ */
+.logo {
+    font-size: 1.8rem;
+    font-weight: 800;
+
+    color: var(--text-color);
+}
+
+.logo span {
+    color: var(--accent); /* antes lila fijo */
+}
+
+
+/* ============================================================
+   3. MENÚ DE NAVEGACIÓN
+============================================================ */
+.header-nav ul {
+    list-style: none;
+    display: flex;
+    gap: 28px;
+}
+
+.header-nav a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 500;
+
+    padding-bottom: 3px;
+    border-bottom: 2px solid transparent;
+
+    transition: 0.25s ease;
+}
+
+/* hover */
+.header-nav a:hover {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+}
+
+
+/* ============================================================
+   4. LADO DERECHO (Login + Theme)
+============================================================ */
+.header-right {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+/* Botón de login */
+.login-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+
+    background: rgba(var(--white-rgb), 0.15);
+    border: 2px solid rgba(var(--white-rgb), 0.85);
+    color: var(--text-color);
+
+    font-weight: 600;
+
+    backdrop-filter: blur(6px);
+    transition: 0.25s ease;
+}
+
+.login-btn:hover {
+    background: rgba(var(--white-rgb), 0.35);
+    transform: translateY(-2px);
+}
+
+/* Botón de tema */
+.theme-switch {
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+
+    background: var(--accent);
+    color: var(--text-color);
+
+    border: none;
+    font-weight: 600;
+
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.45);
+    transition: 0.25s ease;
+}
+
+.theme-switch:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.75);
+}
+
+
+/* ============================================================
+   5. NOMBRE DEL USUARIO (después de login)
+============================================================ */
+.welcome-text {
+    margin-top: 5px;
+    text-align: right;
+    font-size: 0.85rem;
+
+    color: var(--accent-light); /* antes color fijo */
+}
+
+
