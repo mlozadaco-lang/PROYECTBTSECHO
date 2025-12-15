@@ -1,5 +1,8 @@
 <?php
-header("Content-Type: application/json; charset=utf-8");
+require_once __DIR__ . '/_api.php';
+api_bootstrap(false);
+
+// WHY: shared helpers (_api.php) remove repeated JSON/header/body parsing boilerplate.
 
 require_once __DIR__ . "/../../config/database.php";
 
@@ -14,8 +17,9 @@ use PHPMailer\PHPMailer\Exception;
 /* =====================================================
    1. LEER EMAIL
 ===================================================== */
-$raw = file_get_contents("php://input");
-$json = json_decode($raw, true);
+
+// WHY: keep compatibility with both JSON body and form POST.
+$json = api_read_json_body();
 
 $email = "";
 if (is_array($json) && isset($json["email"])) {
@@ -24,14 +28,7 @@ if (is_array($json) && isset($json["email"])) {
     $email = trim($_POST["email"]);
 }
 
-if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo json_encode([
-        "success" => false,
-        "message" => "Correo inválido."
-    ]);
-    exit;
-}
+if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) api_fail(400, "Correo inválido.");
 
 /* =====================================================
    2. BUSCAR USUARIO
@@ -46,11 +43,10 @@ $stmt->execute([$email]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
-    echo json_encode([
-        "success" => true,
+    // WHY: security/privacy — do not reveal whether the email exists.
+    api_ok([
         "message" => "Si el correo existe, te enviaremos un enlace de recuperación 💜"
     ]);
-    exit;
 }
 
 /* =====================================================
@@ -179,20 +175,12 @@ try {
 
     $mail->send();
 
-    echo json_encode([
-        "success" => true,
+    api_ok([
         "message" => "Si el correo existe, te enviaremos un enlace de recuperación 💜"
     ]);
 } catch (Exception $e) {
-    http_response_code(500);
-    $payload = [
-        "success" => false,
-        "message" => "No se pudo enviar el correo. Intenta más tarde."
-    ];
-
-    if (getenv("APP_DEBUG") === "1") {
-        $payload["debug"] = $mail->ErrorInfo;
-    }
-
-    echo json_encode($payload);
+    $payload = [];
+    // WHY: in production we avoid leaking SMTP details; debug is opt-in via APP_DEBUG.
+    if (getenv("APP_DEBUG") === "1") $payload["debug"] = $mail->ErrorInfo;
+    api_fail(500, "No se pudo enviar el correo. Intenta más tarde.", $payload);
 }

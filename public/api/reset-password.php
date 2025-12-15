@@ -1,32 +1,25 @@
 <?php
-header("Content-Type: application/json; charset=utf-8");
+require_once __DIR__ . '/_api.php';
+api_bootstrap(false);
+
+// WHY: shared helpers keep responses consistent and reduce boilerplate.
 
 // conexión DB
 require_once __DIR__ . "/../../config/database.php";
 
 // leer JSON
-$data = json_decode(file_get_contents("php://input"), true);
+$data = api_read_json_body();
 
 $token   = trim($data["token"] ?? "");
 $newPass = trim($data["password"] ?? "");
 
 // validar entrada
 if (empty($token) || empty($newPass)) {
-    http_response_code(400);
-    echo json_encode([
-        "success" => false,
-        "message" => "Token o contraseña faltante"
-    ]);
-    exit;
+    api_fail(400, "Token o contraseña faltante");
 }
 
 if (mb_strlen($newPass) < 8) {
-    http_response_code(400);
-    echo json_encode([
-        "success" => false,
-        "message" => "La contraseña debe tener mínimo 8 caracteres"
-    ]);
-    exit;
+    api_fail(400, "La contraseña debe tener mínimo 8 caracteres");
 }
 
 try {
@@ -43,12 +36,7 @@ try {
     $reset = $stmt->fetch();
 
     if (!$reset) {
-        http_response_code(400);
-        echo json_encode([
-            "success" => false,
-            "message" => "Token inválido o expirado"
-        ]);
-        exit;
+        api_fail(400, "Token inválido o expirado");
     }
 
     $userId = $reset["user_id"];
@@ -73,15 +61,10 @@ try {
     $stmt->execute([$token]);
 
     // respuesta final
-    echo json_encode([
-        "success" => true,
+    api_ok([
         "message" => "Contraseña actualizada correctamente"
     ]);
 
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        "success" => false,
-        "message" => "Error interno del servidor"
-    ]);
+    api_fail(500, "Error interno del servidor");
 }
