@@ -2,6 +2,23 @@
 
 Proyecto web con **front estático (HTML/CSS/JS)** servido desde `public/`, y **backend en PHP** (endpoints JSON bajo `public/api/`) con **MySQL** (Docker).
 
+Este archivo es el “documento para el equipo”: explica qué hace cada parte, cómo correrlo, y qué decisiones técnicas se tomaron.
+
+## Quickstart (Docker)
+
+Requisitos:
+- Docker Desktop instalado y abierto.
+
+En la raíz del repo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -NonInteractive
+```
+
+URLs:
+- Portal: `http://localhost:8000/`
+- MailHog (bandeja): `http://localhost:8025/`
+
 ## Cambios recientes (MVP)
 
 - Misiones (progreso real):
@@ -56,6 +73,10 @@ docker compose up -d --build
 - MySQL: `localhost:3306`
 
 El contenedor `web` monta el repo completo en `/var/www` y sirve `public/` como DocumentRoot, lo cual permite que las APIs incluyan `config/` y `lib/` usando rutas tipo `__DIR__/../../...`.
+
+Además, el compose incluye **MailHog** para que el envío de correos funcione “sin configurar”:
+- UI: `http://localhost:8025/`
+- SMTP: `mailhog:1025`
 
 ### Opción B — Servidor PHP local (XAMPP/WAMP/Apache)
 
@@ -256,4 +277,22 @@ Imagen web: `database/php/Dockerfile`
 - Si el correo no sale:
   - crea `config/mail.php` con credenciales reales o exporta `SMTP_*`.
   - habilita `APP_DEBUG=1` temporalmente para ver mensajes de error controlados.
-- El link de reset de contraseña está hardcodeado a `http://localhost:8000/...` (si cambias el puerto/host, hay que ajustar ese valor).
+- El link de reset de contraseña se arma con la URL base detectada desde la request (host/puerto). Si usas un proxy o cambias puertos, asegúrate de entrar al portal usando la URL final correcta.
+
+## Checklist de validación (para QA / demo)
+
+- Portal abre en `http://localhost:8000/`.
+- Registro y login funcionan.
+- Misiones carga desde API, completar misión guarda estado y suma XP.
+- Forgot password genera correo visible en MailHog `http://localhost:8025/`.
+- Spotify:
+  - Top semanal por clics: aparece cuando existen clics.
+  - Top BTS en Spotify: requiere `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET`.
+
+## Seguridad / secretos (importante)
+
+- No subir a Git:
+  - `database/.env`
+  - `config/mail.php`
+  - `config/spotify.php`
+- Para compartir por ZIP sin claves: pasar Spotify por parámetros al setup (`-SpotifyClientId`, `-SpotifyClientSecret`) o crear `database/.env` en la PC destino.

@@ -4,6 +4,35 @@ Proyecto web (Front estático) + APIs en PHP + MySQL (Docker).
 
 Si quieres una vista completa del proyecto (qué hay, cómo se conecta todo), revisa el archivo **resumen** en la raíz del repo.
 
+## Quickstart (Docker, 2 minutos)
+
+Requisitos:
+- Windows + PowerShell
+- Docker Desktop instalado y abierto
+
+En la **raíz del proyecto** (donde existen `scripts/` y `database/`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -NonInteractive
+```
+
+URLs:
+- Portal: `http://localhost:8000/`
+- MailHog (bandeja de correos): `http://localhost:8025/`
+
+> Si te pasaron el proyecto por WhatsApp (ZIP): descomprime, abre PowerShell en la raíz y ejecuta el comando.
+
+## Verificación rápida (checklist)
+
+Después del setup:
+- Abre `http://localhost:8000/` y verifica que cargue el portal.
+- Registra un usuario y haz login.
+- En Misiones, completa 1 misión y confirma que sube XP/nivel.
+- En MailHog (`http://localhost:8025/`), prueba “Olvidé mi contraseña” y verifica que llegue el correo.
+- En “Top musical”, verifica:
+  - Top semanal por clics (puede estar vacío si nadie clickeó aún).
+  - Top BTS desde Spotify (solo si configuraste `SPOTIFY_CLIENT_ID/SECRET`).
+
 ## Cambios recientes (MVP)
 
 - Misiones con progreso real:
@@ -49,7 +78,7 @@ La idea general: **Front estático** (HTML/CSS/JS) consume **APIs PHP** en `publ
   - Interacciones simples (front): `public/assets/js/echoverse.js`
 
 Notas:
-- Spotify OAuth (Top personal) y el tracking de “escuchas locales” ya no se usan (se dejaron endpoints antiguos como `410 Gone` para evitar confusiones).
+- Spotify OAuth (Top personal) y el tracking de “escuchas locales” ya no se usan (fueron removidos para reducir fricción y código).
 
 ## Estructura
 
@@ -87,6 +116,17 @@ Notas:
 Los endpoints están en `public/api/` y se consumen desde el front con `fetch('/api/...')`.
 
 
+Principales:
+
+- Auth/sesión: `POST /api/login.php`, `POST /api/register.php`, `POST /api/logout.php`, `GET /api/session.php`
+- Misiones: `GET /api/missions.php`, `POST /api/complete-mission.php`
+- Progreso: `GET /api/progress.php`
+- Reset password: `POST /api/reset-password.php`, `POST /api/forgot-password.php`
+- Spotify: `GET /api/spotify-bts-top.php`, `POST /api/spotify-click.php`, `GET /api/spotify-clicks-top-weekly.php`
+
+## Progreso y niveles
+
+
 - La tabla `user_progress` guarda `level` y `experience` (XP total).
 - Regla actual (simple): cada **20 XP** subes 1 nivel.
 - Cuando completas una misión por primera vez, se suma `missions.reward_xp` a tu XP.
@@ -104,8 +144,6 @@ Puedes abrir `public/index.html` directamente en el navegador.
 > Algunas funciones que llaman a `/api/*` no funcionarán sin un servidor PHP.
 
 Recomendado: servir `public/` con un servidor local (Apache/Nginx/PHP) para evitar problemas de rutas/Fetch.
-
-## Base de datos (Docker)
 
 ## Setup automático (Docker, recomendado)
 
@@ -142,12 +180,6 @@ Esto:
 - (opcional) configura `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET` (si las pasas por parámetro),
 - levanta MySQL + PHP/Apache con `docker compose up -d --build`,
 - y deja el sitio en `http://localhost:8000/`.
-
-Opcional (para dejar Spotify listo desde el comando):
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -NonInteractive -SpotifyClientId "TU_ID" -SpotifyClientSecret "TU_SECRET"
-```
 
 Desde la carpeta `database/`:
 
@@ -193,12 +225,18 @@ La API `public/api/forgot-password.php` usa PHPMailer y lee configuración desde
 
 `config/mail.php` está en `.gitignore` (para no subir credenciales). Usa `config/mail.example.php` como plantilla.
 
-Configura estas variables de entorno antes de probar envío de correos:
+Configura estas variables de entorno antes de probar envío de correos con un SMTP real:
 
 - `SMTP_HOST`
 - `SMTP_USERNAME`
 - `SMTP_PASSWORD`
 - `SMTP_PORT` (opcional; por defecto `587`)
+
+Opcionales (útiles en Docker/MailHog o si tu SMTP lo requiere):
+
+- `SMTP_AUTH` (`0`/`1`)
+- `SMTP_SECURE` (`none`/`tls`/`ssl`)
+- `MAIL_FROM`
 
 Debug opcional:
 - Si quieres ver detalles del error SMTP en la respuesta JSON, define `APP_DEBUG=1`.
@@ -224,6 +262,8 @@ Nota: el **Top personal del usuario (OAuth)** fue removido porque Spotify requie
 
 - `SPOTIFY_CLIENT_ID`
 - `SPOTIFY_CLIENT_SECRET`
+
+Si no las configuras, el portal igual funciona, pero el bloque de **Top BTS en Spotify** mostrará un aviso de “Spotify no está configurado”.
 
 Alternativa (más fácil en XAMPP/WAMP):
 - Copia `config/spotify.example.php` a `config/spotify.php` y pega tus credenciales ahí.
