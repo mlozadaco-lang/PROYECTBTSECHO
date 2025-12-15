@@ -1,0 +1,159 @@
+@startuml
+hide circle
+skinparam linetype ortho
+skinparam entity {
+  BackgroundColor #F9F9F9
+  BorderColor #333
+}
+
+title Diagrama Relacional – BTS Echo (Gamificación)
+
+entity users {
+  + id : INT <<PK>>
+  --
+  name : VARCHAR
+  email : VARCHAR
+  password_hash : VARCHAR
+  created_at : TIMESTAMP
+}
+
+entity roles {
+  + id : INT <<PK>>
+  --
+  name : VARCHAR
+}
+
+entity user_roles {
+  + user_id : INT <<PK, FK>>
+  + role_id : INT <<PK, FK>>
+}
+
+entity user_progress {
+  + user_id : INT <<PK, FK>>
+  --
+  level : INT
+  experience : INT
+}
+
+entity artists {
+  + id : INT <<PK>>
+  --
+  name : VARCHAR
+}
+
+entity albums {
+  + id : INT <<PK>>
+  --
+  title : VARCHAR
+  artist_id : INT <<FK>>
+}
+
+entity songs {
+  + id : INT <<PK>>
+  --
+  title : VARCHAR
+  artist_id : INT <<FK>>
+  album_id : INT <<FK>>
+}
+
+entity playlists {
+  + id : INT <<PK>>
+  --
+  name : VARCHAR
+  user_id : INT <<FK>>
+}
+
+entity playlist_songs {
+  + playlist_id : INT <<PK, FK>>
+  + song_id : INT <<PK, FK>>
+}
+
+entity missions {
+  + id : INT <<PK>>
+  --
+  title : VARCHAR
+  description : TEXT
+  reward_xp : INT
+}
+
+entity user_missions {
+  + user_id : INT <<PK, FK>>
+  + mission_id : INT <<PK, FK>>
+  --
+  status : VARCHAR
+  completed_at : TIMESTAMP
+}
+
+entity achievements {
+  + id : INT <<PK>>
+  --
+  name : VARCHAR
+  description : TEXT
+}
+
+entity user_achievements {
+  + user_id : INT <<PK, FK>>
+  + achievement_id : INT <<PK, FK>>
+  --
+  unlocked_at : TIMESTAMP
+}
+
+entity collectibles {
+  + id : INT <<PK>>
+  --
+  name : VARCHAR
+  type : VARCHAR
+  rarity : VARCHAR
+}
+
+entity user_collectibles {
+  + user_id : INT <<PK, FK>>
+  + collectible_id : INT <<PK, FK>>
+  --
+  acquired_at : TIMESTAMP
+}
+
+entity story_nodes {
+  + id : INT <<PK>>
+  --
+  title : VARCHAR
+  narrative_text : TEXT
+}
+
+entity user_story_progress {
+  + user_id : INT <<PK, FK>>
+  + story_node_id : INT <<PK, FK>>
+  --
+  choice_taken : VARCHAR
+}
+
+' =========================
+' Relaciones
+' =========================
+
+users ||--o{ user_roles
+roles ||--o{ user_roles
+
+users ||--|| user_progress
+
+artists ||--o{ albums
+artists ||--o{ songs
+albums ||--o{ songs
+
+users ||--o{ playlists
+playlists ||--o{ playlist_songs
+songs ||--o{ playlist_songs
+
+users ||--o{ user_missions
+missions ||--o{ user_missions
+
+users ||--o{ user_achievements
+achievements ||--o{ user_achievements
+
+users ||--o{ user_collectibles
+collectibles ||--o{ user_collectibles
+
+users ||--o{ user_story_progress
+story_nodes ||--o{ user_story_progress
+
+@enduml

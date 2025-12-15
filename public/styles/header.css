@@ -8,22 +8,51 @@
    1. HEADER GENERAL
 ============================================================ */
 .main-header {
-    width: 100%;
-    padding: 18px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 32px;
+}
 
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* =====================
+   FILA SUPERIOR
+===================== */
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+.welcome-text {
+  font-size: 5.95rem;
+  font-weight: 600;
+  color: var(--accent-light);
+}
 
-    background: var(--bg-header); /* antes fondo fijo */
-    backdrop-filter: blur(8px);
+/* =====================
+   FILA INFERIOR
+===================== */
+.header-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-    transition: background 0.25s ease;
+/* NAV SE MANTIENE */
+.header-nav {
+  display: flex;
+  gap: 24px;
+}
+
+/* BOTONES */
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* UTILIDAD */
+.hidden {
+  display: none;
 }
 
 

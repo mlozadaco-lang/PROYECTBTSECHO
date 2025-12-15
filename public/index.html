@@ -15,35 +15,54 @@
 
 <body>
 
-    <!-- ============================================================
+    <!-- ============================================================a
          1. HEADER PRINCIPAL
     ============================================================ -->
     <header class="main-header">
-        <div class="header-left">
-            <h1 class="logo">BTS Echo <span>💜</span></h1>
+
+    <!-- =====================
+        FILA SUPERIOR
+    ====================== -->
+    <div class="header-top">
+        <div class="logo">
+        BTS Echo <span>💜</span>
         </div>
 
-        <nav class="header-nav">
-            <ul>
-                <li><a href="#">Eras y Línea de Tiempo</a></li>
-                <li><a href="#">Verso de Historias</a></li>
-                <li><a href="#">Laboratorio Creativo</a></li>
-                <li><a href="#">Centro Comunitario</a></li>
-                <li><a href="#">Estudio Musical</a></li>
-                <li><a href="#">Centro de Misiones</a></li>
+        <span id="welcomeUser" class="welcome-text hidden"></span>
+    </div>
 
-            </ul>
+    <!-- =====================
+        FILA INFERIOR
+    ====================== -->
+    <div class="header-bottom">
+
+        <!-- NAV -->
+        <nav class="header-nav">
+        <a href="#">Eras y Línea de Tiempo</a>
+        <a href="#">Verso de Historias</a>
+        <a href="#">Laboratorio Creativo</a>
+        <a href="#">Centro Comunitario</a>
+        <a href="#">Estudio Musical</a>
+        <a href="#">Centro de Misiones</a>
         </nav>
 
-        <div class="header-right">
-            <button id="loginBtn" class="login-btn">Login</button>
+        <!-- ACCIONES -->
+        <div class="header-actions">
+        <button id="loginBtn" class="login-btn">Login</button>
 
-            <!-- 💜 IMPORTANTE: EL ID themeToggle RESTAURADO -->
-            <button id="themeToggle" class="theme-switch">Army Mode 💜</button>
+        <button id="logoutBtn" class="login-btn hidden">
+            Cerrar sesión
+        </button>
+
+        <button id="themeToggle" class="theme-switch">
+            Army Mode 💜
+        </button>
         </div>
 
-        <p id="welcomeUser" class="welcome-text"></p>
+    </div>
+
     </header>
+
 
 
     <!-- ============================================================
@@ -162,24 +181,91 @@
 
     </main>
 
-
     <!-- ============================================================
-         5. LOGIN MODAL
+        5. LOGIN MODAL
     ============================================================ -->
     <div id="authModal" class="auth-modal hidden">
-        <div class="auth-box">
-            <h2>Bienvenido 💜</h2>
+    <div class="auth-box">
 
-            <input type="text" id="authName" placeholder="Tu nombre" />
-            <input type="password" id="authPass" placeholder="Contraseña" />
+        <h2>Bienvenido 💜</h2>
 
-            <button id="authLogin" class="auth-btn">Entrar</button>
-            <button id="authRegister" class="auth-btn secondary">Registrar</button>
+        <!-- EMAIL -->
+        <input 
+        type="email"
+        id="authEmail"
+        placeholder="Correo electrónico"
+        />
 
-            <p id="authMessage"></p>
+        <!-- PASSWORD -->
+        <input 
+        type="password"
+        id="authPass"
+        placeholder="Contraseña"
+        />
 
-            <span id="authClose" class="close-auth">✖</span>
-        </div>
+        <!-- LOGIN -->
+        <button id="authLogin" class="auth-btn">
+        Entrar
+        </button>
+
+        <!-- LINK REGISTRO -->
+        <p class="auth-link">
+        ¿No eres miembro?
+        <a href="#" id="openRegister">Regístrate</a>
+        </p>
+
+        <!-- 🔥 NUEVO: RECUPERAR CONTRASEÑA -->
+        <p class="auth-link">
+        ¿Olvidaste tu contraseña?
+        <a href="#" id="openForgot">Recupérala aquí</a>
+        </p>
+
+
+        <p id="authMessage"></p>
+
+        <span id="authClose" class="close-auth">×</span>
+    </div>
+    </div>
+
+
+    <!-- ============================================================
+        REGISTRO MODAL
+    ============================================================ -->
+    <div id="registerModal" class="auth-modal hidden">
+    <div class="auth-box">
+
+        <h2>Crear cuenta 💜</h2>
+
+        <!-- NOMBRE -->
+        <input 
+        type="text"
+        id="regName"
+        placeholder="Nombre"
+        />
+
+        <!-- EMAIL -->
+        <input 
+        type="email"
+        id="regEmail"
+        placeholder="Correo electrónico"
+        />
+
+        <!-- PASSWORD -->
+        <input 
+        type="password"
+        id="regPass"
+        placeholder="Contraseña"
+        />
+
+        <!-- REGISTRAR -->
+        <button id="confirmRegister" class="auth-btn secondary">
+        Registrarme
+        </button>
+
+        <p id="registerMessage"></p>
+
+        <span id="closeRegister" class="close-auth">×</span>
+    </div>
     </div>
 
 
@@ -218,6 +304,10 @@
 
     <!-- Autenticación -->
     <script src="Script/auth.js"></script>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 
 </body>
 
