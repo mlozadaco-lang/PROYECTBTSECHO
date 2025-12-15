@@ -1,4 +1,5 @@
 (function () {
+  const api = window.BtsEchoApi;
   const btsListEl = document.getElementById('spotifyBtsTopList');
   const viewEl = document.getElementById('musicTopView');
   const viewWeeklyEl = document.getElementById('musicTopWeeklyClicks');
@@ -19,15 +20,23 @@
     if (!btsListEl) return;
     btsListEl.textContent = 'Cargando Top BTS desde Spotify...';
 
+    if (api?.isFileProtocol && api.isFileProtocol()) {
+      btsListEl.textContent = 'Disponible al abrir por http://localhost:8000/';
+      return;
+    }
+
     const market = getSpotifyMarket();
 
     try {
-      const res = await fetch(`/api/spotify-bts-top.php?limit=10&market=${encodeURIComponent(market)}`, {
-        credentials: 'include'
-      });
+      const url = `/api/spotify-bts-top.php?limit=10&market=${encodeURIComponent(market)}`;
 
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data || !data.success) {
+      // WHY: unify JSON parsing/error handling across the project (api.js)
+      const result = api?.requestJson
+        ? await api.requestJson(url, { credentials: 'include' })
+        : await fetch(url, { credentials: 'include' }).then(async (res) => ({ ok: res.ok, status: res.status, data: await res.json().catch(() => null) }));
+
+      const data = result?.data;
+      if (!result?.ok || !data || !data.success) {
         const message = (data && data.message) ? data.message : 'No disponible.';
         btsListEl.textContent = message;
         return;
@@ -77,6 +86,12 @@
       if (navigator.sendBeacon) {
         const blob = new Blob([body], { type: 'application/json' });
         navigator.sendBeacon('/api/spotify-click.php', blob);
+        return;
+      }
+
+      // WHY: keepalive + consistent JSON headers, but don't block navigation.
+      if (api?.postJson) {
+        api.postJson('/api/spotify-click.php', payload || {}, { keepalive: true, credentials: 'include' }).catch(() => {});
         return;
       }
 

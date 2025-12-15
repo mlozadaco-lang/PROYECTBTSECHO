@@ -1,46 +1,15 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
-session_start();
+require_once __DIR__ . '/_api.php';
+api_bootstrap(true);
+
+require_once __DIR__ . '/_spotify_clicks.php';
+
+// WHY: share JSON/session boilerplate + shared table bootstrap between Spotify endpoints.
 
 require_once __DIR__ . '/../../config/database.php';
 
-function ensure_portal_spotify_clicks_table(PDO $pdo): void {
-  $sql = "
-    CREATE TABLE IF NOT EXISTS portal_spotify_clicks (
-      id BIGINT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NULL,
-      spotify_url VARCHAR(255) NOT NULL,
-      spotify_track_id VARCHAR(64) NULL,
-      track_name VARCHAR(200) NULL,
-      artists VARCHAR(300) NULL,
-      context VARCHAR(60) NULL,
-      clicked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-      INDEX idx_portal_spotify_clicks_clicked_at (clicked_at),
-      INDEX idx_portal_spotify_clicks_track_id (spotify_track_id),
-      INDEX idx_portal_spotify_clicks_user_id (user_id)
-    );
-  ";
-  $pdo->exec($sql);
-
-  // If table existed from an older schema, add missing columns.
-  $cols = $pdo->query("SHOW COLUMNS FROM portal_spotify_clicks")->fetchAll(PDO::FETCH_ASSOC);
-  $names = [];
-  foreach ($cols as $c) {
-    if (isset($c['Field'])) $names[strtolower((string)$c['Field'])] = true;
-  }
-  if (!isset($names['context'])) {
-    $pdo->exec("ALTER TABLE portal_spotify_clicks ADD COLUMN context VARCHAR(60) NULL");
-  }
-}
-
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-  http_response_code(405);
-  echo json_encode([
-    'success' => false,
-    'message' => 'Usa POST (application/json) para registrar el clic.'
-  ]);
-  exit;
+  api_fail(405, 'Usa POST (application/json) para registrar el clic.');
 }
 
 $raw = file_get_contents('php://input');
@@ -60,7 +29,6 @@ if (is_string($raw) && trim($raw) !== '') {
 }
 
 if (!is_array($data)) {
-  http_response_code(400);
   $debug = getenv('APP_DEBUG') === '1' ? [
     'debug' => [
       'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
@@ -70,8 +38,7 @@ if (!is_array($data)) {
     ]
   ] : [];
 
-  echo json_encode(['success' => false, 'message' => 'Body inválido'] + $debug);
-  exit;
+  api_fail(400, 'Body inválido', $debug);
 }
 
 $spotifyUrl = trim((string)($data['spotify_url'] ?? ''));
@@ -81,17 +48,13 @@ $artists = trim((string)($data['artists'] ?? ''));
 $context = trim((string)($data['context'] ?? ''));
 
 if (!$spotifyUrl) {
-  http_response_code(400);
-  echo json_encode(['success' => false, 'message' => 'spotify_url requerido']);
-  exit;
+  api_fail(400, 'spotify_url requerido');
 }
 
 // Basic allowlist: accept Spotify URLs only
 $lower = strtolower($spotifyUrl);
 if (!str_starts_with($lower, 'https://open.spotify.com/') && !str_starts_with($lower, 'http://open.spotify.com/')) {
-  http_response_code(400);
-  echo json_encode(['success' => false, 'message' => 'URL no permitida']);
-  exit;
+  api_fail(400, 'URL no permitida');
 }
 
 // Extract track id from URL if missing
@@ -123,8 +86,7 @@ try {
     $context ?: null,
   ]);
 
-  echo json_encode(['success' => true]);
+  api_ok();
 } catch (Exception $e) {
-  http_response_code(500);
-  echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+  api_fail(500, 'Error interno del servidor');
 }

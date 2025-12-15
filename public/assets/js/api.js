@@ -16,12 +16,12 @@
 
   async function readJsonSafe(res) {
     const text = await res.text();
-    if (!text) return null;
+    if (!text) return { data: null, rawText: "" };
     try {
-      return JSON.parse(text);
+      return { data: JSON.parse(text), rawText: text };
     } catch {
-      // WHY: some endpoints might echo warnings/errors; returning null avoids hard crashes.
-      return null;
+      // WHY: some endpoints might echo warnings/errors; keep rawText for debugging previews.
+      return { data: null, rawText: text };
     }
   }
 
@@ -31,8 +31,8 @@
       ...opts,
     });
 
-    const data = await readJsonSafe(res);
-    return { ok: res.ok, status: res.status, data };
+    const parsed = await readJsonSafe(res);
+    return { ok: res.ok, status: res.status, data: parsed.data, rawText: parsed.rawText };
   }
 
   function assertHttp(message) {

@@ -87,27 +87,24 @@
     async function refreshWeeklySpotifyClicksTop() {
         const container = document.getElementById("weeklySpotifyClicksList");
         if (!container) return;
-        if (location.protocol === "file:") {
+        if (window.BtsEchoApi?.isFileProtocol && window.BtsEchoApi.isFileProtocol()) {
             container.textContent = "Disponible al abrir por http://localhost:8000/";
             return;
         }
 
         try {
-            const res = await fetch("/api/spotify-clicks-top-weekly.php?limit=7", {
-                headers: { "Accept": "application/json" }
-            });
+            const api = window.BtsEchoApi;
+            const url = "/api/spotify-clicks-top-weekly.php?limit=7";
 
-            const rawText = await res.text();
-            let data = null;
-            try {
-                data = rawText ? JSON.parse(rawText) : null;
-            } catch {
-                data = null;
-            }
+            // WHY: avoid duplicating fetch + JSON parsing + preview handling.
+            const result = api?.requestJson
+                ? await api.requestJson(url)
+                : await fetch(url, { headers: { "Accept": "application/json" } }).then(async (res) => ({ ok: res.ok, status: res.status, data: await res.json().catch(() => null), rawText: "" }));
 
+            const data = result?.data;
             if (!data) {
-                const preview = String(rawText || "").trim().slice(0, 160);
-                container.textContent = `Error (${res.status}). ${preview || "Respuesta no JSON."}`;
+                const preview = String(result?.rawText || "").trim().slice(0, 160);
+                container.textContent = `Error (${result?.status || 0}). ${preview || "Respuesta no JSON."}`;
                 return;
             }
 

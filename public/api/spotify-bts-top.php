@@ -1,29 +1,25 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
-session_start();
+require_once __DIR__ . '/_api.php';
+api_bootstrap(true);
+
+// WHY: centralize JSON header/session and consistent error responses.
 
 require_once __DIR__ . '/spotify_helpers.php';
 
 $cfg = spotify_get_env_config();
 if (!$cfg['client_id'] || !$cfg['client_secret']) {
-  http_response_code(500);
-  echo json_encode([
-    'success' => false,
-    'message' => 'Spotify no está configurado en el servidor (faltan credenciales).',
-    'items' => [],
-  ]);
-  exit;
+  api_fail(500, 'Spotify no está configurado en el servidor (faltan credenciales).', ['items' => []]);
 }
 
 $token = spotify_get_app_access_token_or_null();
 if (!$token) {
-  http_response_code(502);
   $debug = (getenv('APP_DEBUG') === '1');
   $cfg2 = spotify_get_env_config();
   $tokenResp = $debug ? spotify_token_request(['grant_type' => 'client_credentials'], $cfg2) : null;
   $status = $debug && is_array($tokenResp) ? (int)($tokenResp['status'] ?? 0) : null;
   $errJson = $debug && is_array($tokenResp) ? ($tokenResp['json'] ?? null) : null;
-  echo json_encode([
+
+  api_json([
     'success' => false,
     'message' => 'No se pudo obtener token de Spotify (client_credentials).',
     'debug' => $debug ? [
@@ -32,8 +28,7 @@ if (!$token) {
       'error_description' => is_array($errJson) ? ($errJson['error_description'] ?? null) : null,
     ] : null,
     'items' => [],
-  ]);
-  exit;
+  ], 502);
 }
 
 $limit = (int)($_GET['limit'] ?? 10);
@@ -56,14 +51,10 @@ $resp = spotify_http_request('GET', $url, [
 ]);
 
 if (($resp['status'] ?? 0) !== 200) {
-  http_response_code(502);
-  echo json_encode([
-    'success' => false,
-    'message' => 'No se pudo obtener el Top BTS desde Spotify.',
+  api_fail(502, 'No se pudo obtener el Top BTS desde Spotify.', [
     'status' => $resp['status'] ?? 0,
     'items' => [],
   ]);
-  exit;
 }
 
 $data = json_decode($resp['body'] ?? '', true);
@@ -100,8 +91,7 @@ if (count($items) > $limit) {
   $items = array_slice($items, 0, $limit);
 }
 
-echo json_encode([
-  'success' => true,
+api_ok([
   'market' => $market,
   'items' => $items,
 ]);
