@@ -2,6 +2,10 @@
 # Archivos sensibles (NO subir)
 # ===============================
 /config/mail.php
+/config/spotify.php
+
+# Docker compose env (local secrets)
+/database/.env
 
 # ===============================
 # Dependencias

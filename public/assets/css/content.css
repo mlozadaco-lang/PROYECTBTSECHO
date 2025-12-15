@@ -95,6 +95,123 @@
     box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.45);
 }
 
+/* ============================================================
+   6. TOP SEMANAL (MÚSICA)
+============================================================ */
+
+.music-top-card {
+    background: rgba(var(--white-rgb), 0.06);
+    border: 1px solid rgba(var(--white-rgb), 0.10);
+}
+
+.music-top-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Ensure sections can be toggled with .hidden even if .music-top-list sets display */
+.music-top-list.hidden {
+    display: none;
+}
+
+.music-top-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(var(--white-rgb), 0.05);
+    border: 1px solid rgba(var(--white-rgb), 0.10);
+}
+
+.music-top-rank {
+    min-width: 22px;
+    font-weight: 900;
+    opacity: 0.9;
+}
+
+.music-top-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.music-top-meta {
+    opacity: 0.85;
+    color: var(--accent-light);
+    font-size: 0.9rem;
+}
+
+.music-top-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.music-top-title {
+    font-weight: 800;
+}
+
+.music-top-sub {
+    opacity: 0.85;
+    color: var(--accent-light);
+    font-size: 0.9rem;
+}
+
+.music-top-link {
+    padding: 8px 12px;
+    border-radius: 14px;
+    text-decoration: none;
+    background: rgba(var(--accent-rgb), 0.20);
+    border: 1px solid rgba(var(--accent-rgb), 0.30);
+    color: var(--text-color);
+    font-weight: 700;
+    transition: 0.2s ease;
+}
+
+.music-top-link:hover {
+    transform: translateY(-1px);
+    background: rgba(var(--accent-rgb), 0.30);
+}
+
+.music-top-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.music-top-select-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.music-top-select-label {
+    opacity: 0.9;
+    font-weight: 700;
+}
+
+.music-top-select {
+    padding: 8px 12px;
+    border-radius: 14px;
+    background: rgba(var(--white-rgb), 0.08);
+    border: 1px solid rgba(var(--white-rgb), 0.15);
+    color: var(--text-color);
+    font-weight: 700;
+    outline: none;
+}
+
+.music-top-select option {
+    color: #000;
+}
+
 
 /* ============================================================
    5. BOTÓN OUTLINE

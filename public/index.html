@@ -9,8 +9,8 @@
          ESTILOS CORRECTAMENTE ORDENADOS
          SOLO 2 ARCHIVOS: base.css (variables) + main.css (importador)
     ============================================================ -->
-    <link rel="stylesheet" href="styles/base.css">
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="assets/css/base.css">
+    <link rel="stylesheet" href="assets/css/main.css">
 </head>
 
 <body>
@@ -28,7 +28,40 @@
         BTS Echo <span>💜</span>
         </div>
 
-        <span id="welcomeUser" class="welcome-text hidden"></span>
+        <div class="header-top-right">
+            <!-- Reproductor compacto (arriba de Login) -->
+            <div id="topMusicPlayer" class="top-music-player top-music-player--compact" aria-label="Reproductor">
+                <div class="tmp-left">
+                    <div id="tmpTitle" class="tmp-title">Reproductor</div>
+                    <div id="tmpMeta" class="tmp-meta">Selecciona un miembro para reproducir</div>
+                </div>
+
+                <div class="tmp-center">
+                    <button id="tmpPrev" class="tmp-btn" type="button" aria-label="Anterior">⏮</button>
+                    <button id="tmpPlay" class="tmp-btn tmp-play" type="button" aria-label="Reproducir/Pausar">▶</button>
+                    <button id="tmpNext" class="tmp-btn" type="button" aria-label="Siguiente">⏭</button>
+
+                    <div class="tmp-seek">
+                        <span id="tmpTime" class="tmp-time">0:00 / 0:00</span>
+                        <input id="tmpSeek" class="tmp-range" type="range" min="0" max="100" step="0.1" value="0" aria-label="Progreso" />
+                    </div>
+                </div>
+
+                <div class="tmp-right">
+                    <span class="tmp-vol-label">Vol</span>
+                    <input id="tmpVolume" class="tmp-range tmp-volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen" />
+                </div>
+
+                <audio id="tmpAudio" preload="metadata"></audio>
+            </div>
+
+            <div id="welcomeBlock" class="welcome-block hidden">
+                <span id="welcomeUser" class="welcome-text"></span>
+                <div id="levelBar" class="level-bar hidden" aria-label="Progreso al siguiente nivel">
+                    <div id="levelBarFill" class="level-bar-fill"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- =====================
@@ -110,7 +143,7 @@
     ============================================================ -->
     <section class="hero-video">
         <video class="hero-video-element" autoplay muted loop>
-            <source src="Videos/Universo3.mp4" type="video/mp4">
+            <source src="assets/video/Universo3.mp4" type="video/mp4">
         </video>
 
         <div class="hero-characters">
@@ -145,7 +178,7 @@
 
                 <article class="card era-card">
                     <div class="era-image">
-                        <img src="Imagenes/bts2.jpg" alt="Love Yourself Era">
+                        <img src="assets/images/bts2.jpg" alt="Love Yourself Era">
                     </div>
 
                     <div class="era-info">
@@ -173,6 +206,27 @@
                     <h3>PROYECTO ARMY</h3>
                     <p>Mensaje global de apoyo para BTS</p>
 
+                </article>
+
+                <h2>Top musical</h2>
+                <article class="card music-top-card">
+                    <div class="music-top-controls">
+                        <label class="music-top-select-wrap" for="musicTopView">
+                            <span class="music-top-select-label">Ver</span>
+                            <select id="musicTopView" class="music-top-select">
+                                <option value="weekly_clicks">Top semanal (clics Spotify)</option>
+                                <option value="bts_spotify">Top BTS en Spotify (actual)</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div id="musicTopWeeklyClicks" class="music-top-list">
+                        <div id="weeklySpotifyClicksList" class="music-top-list">Cargando top por clics...</div>
+                    </div>
+
+                    <div id="musicTopBts" class="music-top-list hidden">
+                        <div id="spotifyBtsTopList" class="music-top-list">Cargando Top BTS desde Spotify...</div>
+                    </div>
                 </article>
 
             </div>
@@ -291,19 +345,25 @@
     ============================================================ -->
 
     <!-- Datos -->
-    <script src="Script/members.js"></script>
+    <script src="assets/js/members.js"></script>
+
+    <!-- Reproductor superior (audio local + persistencia) -->
+    <script src="assets/js/player.js"></script>
+
+    <!-- Spotify: Top BTS (sin login) + tracking de clics -->
+    <script src="assets/js/spotify.js"></script>
 
     <!-- Lógica principal -->
-    <script src="Script/script.js"></script>
+    <script src="assets/js/script.js"></script>
 
     <!-- Theme switch -->
-    <script src="Script/theme.js"></script>
+    <script src="assets/js/theme.js"></script>
 
     <!-- Chat -->
-    <script src="Script/chat.js"></script>
+    <script src="assets/js/chat.js"></script>
 
     <!-- Autenticación -->
-    <script src="Script/auth.js"></script>
+    <script src="assets/js/auth.js"></script>
 
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

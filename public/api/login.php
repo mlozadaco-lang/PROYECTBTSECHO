@@ -1,8 +1,5 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-header("Content-Type: application/json");
+header("Content-Type: application/json; charset=utf-8");
 session_start();
 
 require_once __DIR__ . "/../../config/database.php";
@@ -13,7 +10,14 @@ $email = trim($data["email"] ?? "");
 $pass  = trim($data["password"] ?? "");
 
 if (!$email || !$pass) {
+  http_response_code(400);
   echo json_encode(["success" => false, "message" => "Campos obligatorios"]);
+  exit;
+}
+
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+  http_response_code(400);
+  echo json_encode(["success" => false, "message" => "Correo inválido"]);
   exit;
 }
 
@@ -24,6 +28,7 @@ $stmt->execute([$email]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user || !password_verify($pass, $user["password_hash"])) {
+  http_response_code(401);
   echo json_encode(["success" => false, "message" => "Credenciales incorrectas"]);
   exit;
 }
@@ -34,5 +39,6 @@ $_SESSION["email"] = $user["email"];
 
 echo json_encode([
   "success" => true,
-  "name" => $user["name"]
+  "name" => $user["name"],
+  "message" => "Login exitoso"
 ]);

@@ -1,0 +1,377 @@
+/* ============================================================
+   BTS Echo — Reproductor superior (audio local)
+   - Play/Pause, Prev/Next, Seek, Volumen
+   - Persiste: volumen, pista actual, segundo actual
+   - Nota: por políticas del navegador no se auto-reproduce al recargar.
+============================================================ */
+
+(function () {
+    const audio = document.getElementById("tmpAudio");
+    const titleEl = document.getElementById("tmpTitle");
+    const metaEl = document.getElementById("tmpMeta");
+
+    const btnPrev = document.getElementById("tmpPrev");
+    const btnPlay = document.getElementById("tmpPlay");
+    const btnNext = document.getElementById("tmpNext");
+
+    const seek = document.getElementById("tmpSeek");
+    const vol = document.getElementById("tmpVolume");
+    const timeEl = document.getElementById("tmpTime");
+
+    if (!audio || !titleEl || !metaEl || !btnPlay || !seek || !vol || !timeEl) {
+        return;
+    }
+
+    const STORAGE_KEY = "btsecho.topPlayer.state";
+
+    function safeJsonParse(raw) {
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return null;
+        }
+    }
+
+    function clamp(n, min, max) {
+        return Math.max(min, Math.min(max, n));
+    }
+
+    function formatTime(seconds) {
+        if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+    }
+
+    function getTracks() {
+        // Reutilizamos members.js como fuente de datos.
+        // OJO: `const members = [...]` NO necesariamente existe como `window.members`.
+        // En scripts clásicos, `members` es un binding global, pero no una propiedad de window.
+        const list = (Array.isArray(window.members) && window.members.length)
+            ? window.members
+            : (typeof members !== "undefined" && Array.isArray(members) ? members : []);
+
+        if (!Array.isArray(list) || list.length === 0) return [];
+
+        return list
+            .map((m, idx) => ({
+                index: idx,
+                name: String(m?.name || "Pista"),
+                track: String(m?.track || ""),
+                src: String(m?.mp3 || ""),
+            }))
+            .filter(t => !!t.src);
+    }
+
+    const tracks = getTracks();
+    let currentIndex = 0;
+    let isSeekDragging = false;
+    let lastSavedAt = 0;
+    // Nota: el tracking de escuchas locales fue removido.
+
+    const musicTopViewEl = document.getElementById("musicTopView");
+
+    // Load weekly top (Spotify clicks) only when visible
+    if (!musicTopViewEl || String(musicTopViewEl.value || "weekly_clicks") === "weekly_clicks") {
+        refreshWeeklySpotifyClicksTop();
+    }
+
+    if (musicTopViewEl) {
+        musicTopViewEl.addEventListener("change", () => {
+            if (String(musicTopViewEl.value || "") === "weekly_clicks") {
+                refreshWeeklySpotifyClicksTop();
+            }
+        });
+    }
+
+    async function refreshWeeklySpotifyClicksTop() {
+        const container = document.getElementById("weeklySpotifyClicksList");
+        if (!container) return;
+        if (location.protocol === "file:") {
+            container.textContent = "Disponible al abrir por http://localhost:8000/";
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/spotify-clicks-top-weekly.php?limit=7", {
+                headers: { "Accept": "application/json" }
+            });
+
+            const rawText = await res.text();
+            let data = null;
+            try {
+                data = rawText ? JSON.parse(rawText) : null;
+            } catch {
+                data = null;
+            }
+
+            if (!data) {
+                const preview = String(rawText || "").trim().slice(0, 160);
+                container.textContent = `Error (${res.status}). ${preview || "Respuesta no JSON."}`;
+                return;
+            }
+
+            if (!data?.success || !Array.isArray(data.items)) {
+                const msg = (data && typeof data.message === "string" && data.message.trim()) ? data.message.trim() : "No se pudo cargar el top.";
+                container.textContent = msg;
+                return;
+            }
+
+            const items = data.items;
+            if (items.length === 0) {
+                container.textContent = "Aún no hay clics registrados esta semana.";
+                return;
+            }
+
+            container.innerHTML = "";
+            items.forEach((it, idx) => {
+                const row = document.createElement("div");
+                row.className = "music-top-item";
+
+                const left = document.createElement("div");
+                left.className = "music-top-left";
+
+                const title = document.createElement("div");
+                title.className = "music-top-title";
+                title.textContent = `${idx + 1}. ${(it.track_name || "Track").trim()}`;
+
+                const sub = document.createElement("div");
+                sub.className = "music-top-sub";
+                const artists = (it.artists || "").trim();
+                const clicks = Number(it.clicks || 0);
+                sub.textContent = `${artists}${artists ? " • " : ""}${clicks} clics (7 días)`;
+
+                left.appendChild(title);
+                left.appendChild(sub);
+                row.appendChild(left);
+
+                const url = (it.spotify_url || "").trim();
+                if (url) {
+                    const a = document.createElement("a");
+                    a.className = "music-top-link";
+                    a.href = url;
+                    a.target = "_blank";
+                    a.rel = "noreferrer";
+                    a.textContent = "Abrir";
+
+                    row.appendChild(a);
+                }
+
+                container.appendChild(row);
+            });
+        } catch {
+            const container2 = document.getElementById("weeklySpotifyClicksList");
+            if (container2) container2.textContent = "No se pudo cargar el top.";
+        }
+    }
+
+    function loadState() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const state = safeJsonParse(raw) || {};
+
+        const volValue = typeof state.volume === "number" ? clamp(state.volume, 0, 1) : 0.8;
+        vol.value = String(volValue);
+        audio.volume = volValue;
+
+        const idx = typeof state.trackIndex === "number" ? state.trackIndex : 0;
+        currentIndex = clamp(idx, 0, Math.max(0, tracks.length - 1));
+
+        return {
+            savedTime: typeof state.currentTime === "number" ? Math.max(0, state.currentTime) : 0,
+        };
+    }
+
+    function saveState() {
+        const state = {
+            volume: audio.volume,
+            trackIndex: currentIndex,
+            currentTime: audio.currentTime,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function stopHoverAudioIfAny() {
+        // script.js define currentAudio y hoverAudioBlocked.
+        try {
+            if (typeof currentAudio !== "undefined" && currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    function setHoverBlocked(value) {
+        try {
+            if (typeof hoverAudioBlocked !== "undefined") {
+                hoverAudioBlocked = !!value;
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    function updateUi() {
+        const t = tracks[currentIndex];
+        if (!t) {
+            titleEl.textContent = "Reproductor";
+            metaEl.textContent = "No hay pistas disponibles";
+            btnPlay.textContent = "▶";
+            timeEl.textContent = "0:00 / 0:00";
+            seek.value = "0";
+            return;
+        }
+
+        titleEl.textContent = t.name;
+        metaEl.textContent = t.track ? `Track: ${t.track}` : "";
+
+        btnPlay.textContent = audio.paused ? "▶" : "⏸";
+
+        const dur = Number.isFinite(audio.duration) ? audio.duration : 0;
+        const cur = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+        timeEl.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
+
+        if (!isSeekDragging && dur > 0) {
+            seek.value = String((cur / dur) * 100);
+        }
+    }
+
+    function loadTrack(index, opts = {}) {
+        if (tracks.length === 0) return;
+
+        currentIndex = clamp(index, 0, tracks.length - 1);
+        const t = tracks[currentIndex];
+
+        audio.src = t.src;
+        audio.load();
+
+        // Importante: setear el tiempo solo cuando exista metadata
+        const wantedTime = typeof opts.startTime === "number" ? opts.startTime : 0;
+        const shouldPlay = !!opts.autoplay;
+
+        const onMeta = () => {
+            audio.removeEventListener("loadedmetadata", onMeta);
+            if (Number.isFinite(audio.duration) && audio.duration > 0) {
+                audio.currentTime = clamp(wantedTime, 0, Math.max(0, audio.duration - 0.25));
+            }
+            updateUi();
+            if (shouldPlay) {
+                audio.play().catch(() => {
+                    // Autoplay bloqueado: el usuario debe presionar Play
+                });
+            }
+        };
+
+        audio.addEventListener("loadedmetadata", onMeta);
+        updateUi();
+        saveState();
+    }
+
+    function playPause() {
+        if (tracks.length === 0) return;
+
+        if (audio.paused) {
+            stopHoverAudioIfAny();
+            setHoverBlocked(true);
+            audio.play().catch(() => {
+                // bloqueado por navegador
+            });
+        } else {
+            audio.pause();
+            setHoverBlocked(false);
+        }
+        updateUi();
+        saveState();
+    }
+
+    function prev() {
+        if (tracks.length === 0) return;
+        const nextIndex = (currentIndex - 1 + tracks.length) % tracks.length;
+        loadTrack(nextIndex, { startTime: 0, autoplay: !audio.paused });
+    }
+
+    function next() {
+        if (tracks.length === 0) return;
+        const nextIndex = (currentIndex + 1) % tracks.length;
+        loadTrack(nextIndex, { startTime: 0, autoplay: !audio.paused });
+    }
+
+    // Eventos UI
+    btnPlay.addEventListener("click", playPause);
+    if (btnPrev) btnPrev.addEventListener("click", prev);
+    if (btnNext) btnNext.addEventListener("click", next);
+
+    vol.addEventListener("input", () => {
+        const v = clamp(Number(vol.value), 0, 1);
+        audio.volume = v;
+        saveState();
+    });
+
+    seek.addEventListener("input", () => {
+        isSeekDragging = true;
+        updateUi();
+    });
+
+    seek.addEventListener("change", () => {
+        const pct = clamp(Number(seek.value), 0, 100);
+        if (Number.isFinite(audio.duration) && audio.duration > 0) {
+            audio.currentTime = (pct / 100) * audio.duration;
+        }
+        isSeekDragging = false;
+        saveState();
+        updateUi();
+    });
+
+    audio.addEventListener("timeupdate", () => {
+        const now = Date.now();
+        if (now - lastSavedAt > 2000) {
+            lastSavedAt = now;
+            saveState();
+        }
+
+        updateUi();
+    });
+
+    audio.addEventListener("play", () => {
+        setHoverBlocked(true);
+        updateUi();
+    });
+
+    audio.addEventListener("pause", () => {
+        setHoverBlocked(false);
+        updateUi();
+    });
+
+    audio.addEventListener("ended", () => {
+        // Si ya hubo interacción, normalmente el siguiente autoplay sí funciona.
+        next();
+    });
+
+    // API pública para integrarlo con los personajes
+    window.btsEchoTopPlayer = {
+        loadAndPlay: (index) => {
+            // Si es la misma pista, solo toggle play
+            if (Number(index) === currentIndex && audio.src) {
+                playPause();
+                return;
+            }
+            loadTrack(Number(index), { startTime: 0, autoplay: true });
+        },
+        loadOnly: (index) => {
+            loadTrack(Number(index), { startTime: 0, autoplay: false });
+        },
+        getVolume: () => audio.volume,
+        isPlaying: () => !audio.paused,
+    };
+
+    // Init
+    const { savedTime } = loadState();
+    if (tracks.length > 0) {
+        loadTrack(currentIndex, { startTime: savedTime, autoplay: false });
+    } else {
+        updateUi();
+    }
+
+})();

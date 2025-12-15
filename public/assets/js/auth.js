@@ -7,13 +7,124 @@
 const loginBtn   = document.getElementById("loginBtn");
 const logoutBtn  = document.getElementById("logoutBtn");
 const welcomeUser = document.getElementById("welcomeUser");
+const welcomeBlock = document.getElementById("welcomeBlock");
+const levelBar = document.getElementById("levelBar");
+const levelBarFill = document.getElementById("levelBarFill");
+
+function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+}
+
+function isFileProtocol() {
+    return location.protocol === "file:";
+}
+
+function hide(el) {
+    if (el) el.classList.add("hidden");
+}
+
+function show(el) {
+    if (el) el.classList.remove("hidden");
+}
+
+function setText(el, value) {
+    if (el) el.textContent = value == null ? "" : String(value);
+}
+
+async function readJsonResponse(res) {
+    const raw = await res.text();
+    try {
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        throw new Error("Respuesta no-JSON del servidor: " + String(raw || "").slice(0, 200));
+    }
+}
+
+async function postJson(url, payload, fileProtocolErrorMessage) {
+    if (isFileProtocol()) {
+        throw new Error(fileProtocolErrorMessage);
+    }
+
+    const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload || {})
+    });
+
+    const data = await readJsonResponse(res);
+    return { ok: res.ok, data };
+}
+
+function updateLevelBar(progress) {
+    if (!levelBar || !levelBarFill) return;
+
+    if (!progress || typeof progress.xp_per_level !== "number") {
+        levelBar.classList.add("hidden");
+        levelBarFill.style.width = "0%";
+        return;
+    }
+
+    const xpPerLevel = progress.xp_per_level || 0;
+    const xpIntoLevel = typeof progress.xp_into_level === "number" ? progress.xp_into_level : 0;
+
+    if (xpPerLevel <= 0) {
+        levelBar.classList.add("hidden");
+        levelBarFill.style.width = "0%";
+        return;
+    }
+
+    const pct = clamp((xpIntoLevel / xpPerLevel) * 100, 0, 100);
+    levelBarFill.style.width = pct.toFixed(2) + "%";
+    levelBar.classList.remove("hidden");
+}
+
+async function getProgress() {
+    try {
+        const res = await fetch("/api/progress.php", { headers: { "Accept": "application/json" } });
+        const data = await res.json();
+        if (data?.success && data?.progress) return data.progress;
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+async function refreshHeaderUser() {
+    try {
+        const res = await fetch("/api/session.php", { headers: { "Accept": "application/json" } });
+        const data = await res.json();
+
+        if (!data.logged) {
+            // Asegura estado "logged out" limpio
+            setText(welcomeUser, "");
+            hide(welcomeUser);
+            hide(welcomeBlock);
+            hide(logoutBtn);
+            show(loginBtn);
+            updateLevelBar(null);
+            return;
+        }
+
+        const progress = await getProgress();
+        const suffix = progress ? ` (Nivel ${progress.level} • XP ${progress.experience})` : "";
+
+        setText(welcomeUser, `Bienvenido, ${data.user.name} 💜${suffix}`);
+        show(welcomeUser);
+        show(welcomeBlock);
+        updateLevelBar(progress);
+
+        show(logoutBtn);
+        hide(loginBtn);
+    } catch {
+        console.warn("No se pudo verificar la sesión");
+    }
+}
 
 /* ===== LOGIN MODAL ===== */
 const authModal  = document.getElementById("authModal");
 const authClose  = document.getElementById("authClose");
 
 const authLogin     = document.getElementById("authLogin");
-const authRegister  = document.getElementById("authRegister");
 
 const authEmail = document.getElementById("authEmail");
 const authPass  = document.getElementById("authPass");
@@ -34,20 +145,7 @@ const confirmRegister = document.getElementById("confirmRegister");
    VERIFICAR SESIÓN AL CARGAR
 ============================================================ */
 window.addEventListener("DOMContentLoaded", async () => {
-    try {
-        const res = await fetch("/api/session.php");
-        const data = await res.json();
-
-        if (data.logged) {
-            welcomeUser.textContent = `Bienvenido, ${data.user.name} 💜`;
-            welcomeUser.classList.remove("hidden");
-
-            logoutBtn.classList.remove("hidden");
-            loginBtn.classList.add("hidden");
-        }
-    } catch {
-        console.warn("No se pudo verificar la sesión");
-    }
+    await refreshHeaderUser();
 });
 
 /* ============================================================
@@ -55,8 +153,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 ============================================================ */
 if (loginBtn) {
     loginBtn.addEventListener("click", () => {
-        authModal.classList.remove("hidden");
-        authMsg.textContent = "";
+        show(authModal);
+        setText(authMsg, "");
     });
 }
 
@@ -65,8 +163,8 @@ if (loginBtn) {
 ============================================================ */
 if (authClose) {
     authClose.addEventListener("click", () => {
-        authModal.classList.add("hidden");
-        authMsg.textContent = "";
+        hide(authModal);
+        setText(authMsg, "");
     });
 }
 
@@ -76,9 +174,9 @@ if (authClose) {
 if (openRegister) {
     openRegister.addEventListener("click", (e) => {
         e.preventDefault();
-        authModal.classList.add("hidden");
-        registerModal.classList.remove("hidden");
-        registerMsg.textContent = "";
+        hide(authModal);
+        show(registerModal);
+        setText(registerMsg, "");
     });
 }
 
@@ -87,7 +185,7 @@ if (openRegister) {
 ============================================================ */
 if (closeRegister) {
     closeRegister.addEventListener("click", () => {
-        registerModal.classList.add("hidden");
+        hide(registerModal);
     });
 }
 
@@ -102,29 +200,28 @@ if (confirmRegister) {
         const pass  = regPass.value.trim();
 
         if (!name || !email || !pass) {
-            registerMsg.textContent = "Completa todos los campos.";
+            setText(registerMsg, "Completa todos los campos.");
             return;
         }
 
         try {
-            const res = await fetch("/api/register.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, password: pass })
-            });
+            const result = await postJson(
+                "/api/register.php",
+                { name, email, password: pass },
+                "Estás abriendo el proyecto como archivo (file://). Abre http://localhost:8000/ para que /api/register.php funcione."
+            );
 
-            const data = await res.json();
-            registerMsg.textContent = data.message;
+            setText(registerMsg, result.data?.message);
 
-            if (data.success) {
+            if (result.data?.success) {
                 setTimeout(() => {
-                    registerModal.classList.add("hidden");
-                    authModal.classList.remove("hidden");
+                    hide(registerModal);
+                    show(authModal);
                 }, 1200);
             }
 
-        } catch {
-            registerMsg.textContent = "Error al registrar.";
+        } catch (err) {
+            setText(registerMsg, err?.message || "Error al registrar.");
         }
     });
 }
@@ -139,34 +236,29 @@ if (authLogin) {
         const pass  = authPass.value.trim();
 
         if (!email || !pass) {
-            authMsg.textContent = "Debes ingresar correo y contraseña.";
+            setText(authMsg, "Debes ingresar correo y contraseña.");
             return;
         }
 
         try {
-            const res = await fetch("/api/login.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password: pass })
-            });
+            const result = await postJson(
+                "/api/login.php",
+                { email, password: pass },
+                "Estás abriendo el proyecto como archivo (file://). Abre http://localhost:8000/ para que /api/login.php funcione."
+            );
 
-            const data = await res.json();
+            if (result.data?.success) {
+                hide(authModal);
+                setText(authMsg, "");
 
-            if (data.success) {
-                welcomeUser.textContent = `Bienvenido, ${data.name} 💜`;
-                welcomeUser.classList.remove("hidden");
-
-                authModal.classList.add("hidden");
-                authMsg.textContent = "";
-
-                logoutBtn.classList.remove("hidden");
-                loginBtn.classList.add("hidden");
+                // Actualiza header con nivel/XP
+                await refreshHeaderUser();
             } else {
-                authMsg.textContent = data.message;
+                setText(authMsg, result.data?.message);
             }
 
-        } catch {
-            authMsg.textContent = "No se pudo conectar con el servidor.";
+        } catch (err) {
+            setText(authMsg, err?.message || "No se pudo conectar con el servidor.");
         }
     });
 }

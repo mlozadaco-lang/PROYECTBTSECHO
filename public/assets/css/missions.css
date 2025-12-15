@@ -33,6 +33,31 @@ body {
     margin-top: 8px;
 }
 
+.mission-progress {
+    opacity: 0.9;
+    margin-top: 10px;
+    letter-spacing: 1px;
+}
+
+.mission-level-bar {
+    width: 320px;
+    max-width: 85vw;
+    height: 10px;
+    margin: 14px auto 0;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.25);
+}
+
+.mission-level-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #b48aff;
+    box-shadow: 0 0 18px rgba(180,140,255,0.6);
+    transition: width 0.35s ease;
+}
+
 /* GRID MISIONES */
 .mission-grid {
     margin-top: 50px;
@@ -58,6 +83,31 @@ body {
     box-shadow: 0 0 30px rgba(200,140,255,0.6);
 }
 
+.mission-proof {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.10);
+    color: white;
+    resize: vertical;
+    outline: none;
+}
+
+.mission-proof::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+
+.mission-proof-display {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    opacity: 0.9;
+    word-break: break-word;
+}
+
 .mission-btn {
     margin-top: 15px;
     padding: 10px 18px;
@@ -67,6 +117,11 @@ body {
     cursor: pointer;
     color: white;
     transition: .3s;
+}
+
+.mission-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 
 .mission-btn:hover {

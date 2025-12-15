@@ -1,5 +1,5 @@
 <?php
-header("Content-Type: application/json");
+header("Content-Type: application/json; charset=utf-8");
 
 // conexión DB
 require_once __DIR__ . "/../../config/database.php";
@@ -7,8 +7,8 @@ require_once __DIR__ . "/../../config/database.php";
 // leer JSON
 $data = json_decode(file_get_contents("php://input"), true);
 
-$token   = $data["token"] ?? "";
-$newPass = $data["password"] ?? "";
+$token   = trim($data["token"] ?? "");
+$newPass = trim($data["password"] ?? "");
 
 // validar entrada
 if (empty($token) || empty($newPass)) {
@@ -16,6 +16,15 @@ if (empty($token) || empty($newPass)) {
     echo json_encode([
         "success" => false,
         "message" => "Token o contraseña faltante"
+    ]);
+    exit;
+}
+
+if (mb_strlen($newPass) < 8) {
+    http_response_code(400);
+    echo json_encode([
+        "success" => false,
+        "message" => "La contraseña debe tener mínimo 8 caracteres"
     ]);
     exit;
 }

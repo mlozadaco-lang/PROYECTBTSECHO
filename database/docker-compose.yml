@@ -1,0 +1,49 @@
+name: db-btsecho
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_btsecho
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: btsecho
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: btsecho_mailhog
+    restart: always
+    ports:
+      - "8025:8025" # UI
+      - "1025:1025" # SMTP
+
+  web:
+    build:
+      context: ./php
+    container_name: btsecho_web
+    depends_on:
+      - mysql
+      - mailhog
+    ports:
+      - "8000:80"
+    env_file:
+      - ./.env
+    environment:
+      DB_HOST: mysql
+      DB_NAME: btsecho
+      DB_USER: admin
+      DB_PASS: admin123
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+    volumes:
+      - ..:/var/www:ro
+
+volumes:
+  mysql_data:

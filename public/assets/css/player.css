@@ -1,0 +1,244 @@
+/* ============================================================
+   BTS ECHO — MINI PLAYER (Spotify + YouTube)
+   Restaurado para Army Mode — mismo diseño, solo colores dinámicos
+============================================================ */
+
+
+/* ============================================================
+   0. REPRODUCTOR SUPERIOR (AUDIO LOCAL)
+============================================================ */
+
+.top-music-player {
+    padding: 12px 14px;
+    border-radius: 16px;
+
+    background: var(--bg-header);
+    backdrop-filter: blur(10px);
+
+    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.20);
+    border: 1px solid rgba(var(--white-rgb), 0.14);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.top-music-player--compact {
+    padding: 8px 10px;
+    border-radius: 14px;
+    gap: 10px;
+}
+
+.top-music-player--compact .tmp-left {
+    min-width: 140px;
+}
+
+.top-music-player--compact .tmp-meta {
+    display: none;
+}
+
+.top-music-player--compact .tmp-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 11px;
+}
+
+.top-music-player--compact .tmp-seek {
+    width: min(320px, 42vw);
+}
+
+.top-music-player--compact .tmp-time {
+    font-size: 0.75rem;
+}
+
+.top-music-player--compact .tmp-right {
+    min-width: 140px;
+}
+
+.tmp-left {
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tmp-title {
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    color: var(--text-color);
+}
+
+.tmp-meta {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    color: var(--accent-light);
+}
+
+.tmp-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.tmp-right {
+    min-width: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.tmp-vol-label {
+    font-weight: 700;
+    opacity: 0.9;
+}
+
+.tmp-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: rgba(var(--white-rgb), 0.10);
+    border: 1px solid rgba(var(--white-rgb), 0.14);
+    color: var(--text-color);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.18);
+    transition: 0.2s ease;
+}
+
+.tmp-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(var(--white-rgb), 0.22);
+}
+
+.tmp-play {
+    background: rgba(var(--accent-rgb), 0.20);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.32);
+}
+
+.tmp-seek {
+    width: min(520px, 55vw);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tmp-time {
+    font-size: 0.8rem;
+    opacity: 0.85;
+}
+
+.tmp-range {
+    width: 100%;
+}
+
+@media (max-width: 920px) {
+    .top-music-player {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tmp-left,
+    .tmp-right {
+        min-width: 0;
+    }
+
+    .tmp-center {
+        justify-content: flex-start;
+    }
+
+    .tmp-seek {
+        width: 100%;
+    }
+}
+
+
+/* ============================================================
+   1. BURBUJA GENERAL
+============================================================ */
+.player-bubble {
+    position: fixed;
+    bottom: 100px;
+    left: 25px;
+
+    width: 340px;
+    height: auto;
+
+    padding: 15px;
+
+    background: var(--bg-card); /* antes color fijo */
+    backdrop-filter: blur(10px);
+
+    border-radius: 16px;
+    box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.35);
+
+    display: none;  /* Se activa desde JS */
+    z-index: 999;
+    transition: 0.3s ease;
+}
+
+.player-bubble:not(.hidden) {
+    display: block;
+}
+
+
+/* ============================================================
+   2. CONTENEDOR INTERNO DEL PLAYER
+============================================================ */
+.player-content {
+    position: relative;
+    border-radius: 12px;
+
+    padding: 10px;
+
+    background: rgba(var(--white-rgb), 0.05);
+    backdrop-filter: blur(8px);
+
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.25);
+}
+
+
+/* ============================================================
+   3. BOTÓN DE CERRAR
+============================================================ */
+.close-bubble {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+
+    background: var(--accent);
+    color: var(--text-color);
+
+    border: none;
+    border-radius: 50%;
+
+    width: 28px;
+    height: 28px;
+
+    font-size: 1rem;
+    cursor: pointer;
+
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.45);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.close-bubble:hover {
+    transform: scale(1.12);
+    box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.75);
+}
+
+
+/* ============================================================
+   4. IFRAME (Spotify o YouTube)
+============================================================ */
+.player-content iframe {
+    width: 100%;
+    height: 160px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #000; /* El reproductor ya usa su propio tema */
+}

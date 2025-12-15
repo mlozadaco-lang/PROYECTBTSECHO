@@ -1,0 +1,259 @@
+# Resumen del proyecto — PROYECTBTSECHO (BTS Echo)
+
+Proyecto web con **front estático (HTML/CSS/JS)** servido desde `public/`, y **backend en PHP** (endpoints JSON bajo `public/api/`) con **MySQL** (Docker).
+
+## Cambios recientes (MVP)
+
+- Misiones (progreso real):
+  - `GET /api/missions.php` ahora devuelve `status` y `completed_at` por usuario logueado (usa `user_missions`).
+  - `POST /api/complete-mission.php` marca una misión como completada y la persiste en DB.
+  - Anti-trampa (MVP): para completar se pide `proof` (texto o link) y se guarda en `user_missions.proof`.
+- Niveles (MVP): al completar misiones se suma XP y se actualiza `user_progress`.
+  - El front en Misiones consume la API y, si falla, deja contenido estático (fallback).
+  - UI: se muestra una barra de progreso al siguiente nivel en el Portal y en Misiones.
+- DB: `database/init.sql` incluye misiones de ejemplo para ver contenido al instante.
+- Seguridad/validación: contraseñas mínimo **8 caracteres** (registro y reset).
+- Forgot password: no revela si el correo existe; `APP_DEBUG=1` habilita `debug` en la respuesta cuando falla SMTP.
+- Música (Portal): reproductor superior con volumen + progreso.
+  - Persistencia (localStorage): recuerda volumen, pista y segundo donde se quedó.
+  - Nota: el embed de Spotify no permite leer/controlar el tiempo desde JS por cross-origin; por eso el reproductor usa audios locales.
+  - Ubicación: en el header, arriba del botón de Login (UI compacta).
+- Música (Top semanal por clics Spotify): el portal registra clics a Spotify y calcula un Top semanal (últimos 7 días).
+  - APIs: `POST /api/spotify-click.php` (registrar clic) y `GET /api/spotify-clicks-top-weekly.php` (consultar top).
+- Spotify (Top BTS actual): el portal muestra el Top de BTS desde Spotify sin login (client_credentials).
+  - API: `GET /api/spotify-bts-top.php`.
+
+## 1) Estructura del repositorio
+
+- `public/`
+  - `index.html` (portal principal)
+  - `echoverse/index.html`
+  - `missions/index.html`
+  - `reset-password.html`
+  - `api/` (backend PHP)
+  - `assets/` (CSS/JS/imagenes/audio/video centralizados)
+- `config/`
+  - `database.php` (conexión PDO; lee variables de entorno)
+  - `mail.example.php` (plantilla de config SMTP; `mail.php` está ignorado por git)
+- `database/`
+  - `docker-compose.yml` (MySQL + PHP/Apache)
+  - `init.sql` (schema + datos iniciales)
+  - `php/Dockerfile` (imagen PHP 8.2 + Apache con `pdo_mysql`)
+- `lib/PHPMailer/` (PHPMailer incluido sin Composer)
+- `README.md` (guía rápida de uso)
+
+## 2) Cómo ejecutar
+
+### Opción A — Docker (recomendado)
+
+Desde `database/`:
+
+```bash
+docker compose up -d --build
+```
+
+- Web: `http://localhost:8000/`
+- MySQL: `localhost:3306`
+
+El contenedor `web` monta el repo completo en `/var/www` y sirve `public/` como DocumentRoot, lo cual permite que las APIs incluyan `config/` y `lib/` usando rutas tipo `__DIR__/../../...`.
+
+### Opción B — Servidor PHP local (XAMPP/WAMP/Apache)
+
+- Configurar DocumentRoot apuntando a `public/`.
+- Importar la BD usando `database/init.sql`.
+
+### Importante
+
+- No abrir el proyecto con `file://` si vas a usar `/api/*`. El front hace `fetch('/api/...')` y eso requiere HTTP.
+
+## 3) Páginas (front)
+
+### `public/index.html` (Portal)
+
+- Header con botones de **Login / Logout** y toggle de tema (“Army Mode”).
+- Chat flotante (simulado en el front).
+- Hero con video `public/assets/video/Universo3.mp4`.
+- Botones que navegan a:
+  - `echoverse/index.html`
+  - `missions/index.html`
+- Modales:
+  - Login
+  - Registro
+  - Recuperación de contraseña (SweetAlert)
+
+JS principal asociado:
+- `public/assets/js/auth.js` (login/registro/sesión/logout/forgot)
+- `public/assets/js/chat.js` (UI chat)
+- `public/assets/js/script.js` (personajes + audio hover + Spotify/Youtube + navegación)
+
+Notas música (Portal):
+- En la sección “Top musical” hay un selector para alternar vistas (Top BTS actual / Top semanal por clics).
+
+### `public/echoverse/index.html`
+
+- Página temática con fondo de video y “cards” de eras.
+- Botón “Regresar al Portal”.
+- Script: `public/assets/js/echoverse.js`.
+
+### `public/missions/index.html`
+
+- Página “Centro de misiones” (grid de misiones).
+- Intenta cargar misiones reales desde `GET /api/missions.php` y, si falla, deja el contenido estático.
+- Si hay sesión, permite marcar una misión como completada con `POST /api/complete-mission.php`.
+- Botón “Regresar”.
+- Script: `public/assets/js/missions.js`.
+
+### `public/reset-password.html`
+
+- Formulario para ingresar nueva contraseña.
+- Lee `token` desde querystring (`?token=...`).
+- Hace `fetch('/api/reset-password.php')`.
+- Carga la lógica desde `public/assets/js/reset-password.js`.
+
+## 4) Backend (PHP) — Endpoints
+
+Todos viven en `public/api/`.
+
+### `POST /api/register.php`
+- Body JSON:
+  - `{ "name": string, "email": string, "password": string }`
+- Validación:
+  - contraseña mínimo **8 caracteres**
+- Respuesta:
+  - `{"success": true, "message": "Registro exitoso 💜"}`
+  - o `{"success": false, "message": "Correo ya registrado"}`
+
+### `POST /api/login.php`
+- Body JSON:
+  - `{ "email": string, "password": string }`
+- Acciones:
+  - Verifica `password_hash` con `password_verify()`.
+  - Crea sesión PHP (`$_SESSION[user_id,name,email]`).
+- Respuesta:
+  - `{"success": true, "name": "..."}`
+  - o `{"success": false, "message": "Credenciales incorrectas"}`
+
+### `GET /api/session.php`
+- Respuesta:
+  - Si hay sesión: `{"logged": true, "user": {"name": "...", "email": "..."}}`
+  - Si no hay sesión: `{"logged": false}`
+
+### `GET /api/logout.php`
+- Acciones:
+  - `session_unset()` + `session_destroy()`.
+- Respuesta:
+  - `{"success": true}`
+
+### `POST /api/forgot-password.php`
+- Entrada:
+  - JSON `{ "email": string }` o `POST email=...`.
+- Flujo:
+  - Valida email.
+  - Busca usuario en `users`.
+  - Genera token (hex de 32 bytes) y lo inserta en `password_resets` con expiración 30 min.
+  - Construye link: `http://localhost:8000/reset-password.html?token=...`.
+  - Envía correo con PHPMailer.
+- Respuesta:
+  - Por seguridad, responde con éxito aunque el correo no exista: `{"success": true, "message": "Si el correo existe..."}`
+  - En fallo real de envío: `{"success": false, "message": "No se pudo enviar..."}`
+  - `debug` solo aparece si `APP_DEBUG=1`
+
+### `POST /api/reset-password.php`
+- Body JSON:
+  - `{ "token": string, "password": string }`
+- Validación:
+  - contraseña mínimo **8 caracteres**
+- Flujo:
+  - Valida token existente, no usado, y no expirado (`expires_at > NOW()`).
+  - Actualiza `users.password_hash`.
+  - Marca token como `used = 1`.
+- Respuesta:
+  - `{"success": true, "message": "Contraseña actualizada correctamente"}`
+  - o error con `http_response_code(400/500)`.
+
+### `POST /api/complete-mission.php`
+- Requiere sesión activa.
+- Body JSON: `{ "mission_id": number, "proof": string }`
+- Flujo:
+  - Verifica que la misión exista en `missions`.
+  - Inserta/actualiza en `user_missions` con `status='completed'` y `completed_at=NOW()`.
+- Guarda `proof` como evidencia simple.
+- Respuesta (éxito): `{ "success": true, "message": "Misión completada", "mission_id": 1, "status": "completed" }`
+
+### `GET /api/progress.php`
+- Requiere sesión activa.
+- Devuelve el progreso del usuario desde `user_progress`.
+- Regla de nivel (simple): cada **20 XP** subes 1 nivel.
+- Respuesta (éxito):
+  - `{ "success": true, "progress": { "level": 1, "experience": 0, "xp_per_level": 20, ... } }`
+
+## 5) Configuración
+
+### Base de datos: `config/database.php`
+- Lee variables de entorno:
+  - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`
+- Fallbacks por defecto:
+  - host `127.0.0.1`, db `btsecho`, user `admin`, pass `admin123`
+
+### Correo: `config/mail.example.php`
+- Lee variables de entorno:
+  - `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_PORT` (default `587`)
+- Para uso real, crear `config/mail.php` (ignorado por git).
+
+## 6) Base de datos (MySQL)
+
+Definida en `database/init.sql`.
+
+Tablas principales:
+- Auth:
+  - `users` (id, name, email unique, password_hash, created_at)
+  - `password_resets` (user_id, reset_token, expires_at, used, created_at)
+- Roles y progreso:
+  - `roles`, `user_roles`, `user_progress`
+- Catálogo musical:
+  - `artists`, `albums`, `songs`, `playlists`, `playlist_songs`
+- Gamificación:
+  - `missions`, `user_missions`, `achievements`, `user_achievements`, `collectibles`, `user_collectibles`
+- Narrativa:
+  - `story_nodes`, `user_story_progress`
+
+Datos iniciales:
+- Roles: `ADMIN`, `USER`
+- Artista inicial: `BTS`
+- Misiones: 3 misiones de ejemplo (para que Misiones cargue data)
+
+Notas de progreso real:
+- `user_missions` guarda el progreso por usuario. La PK es compuesta (`user_id`, `mission_id`).
+- `missions.php` hace un `LEFT JOIN` para devolver `status`/`completed_at` cuando hay sesión.
+
+Migración (si tu BD ya estaba creada antes de este cambio):
+- Ejecuta:
+  - `ALTER TABLE user_missions ADD COLUMN proof TEXT NULL;`
+
+Notas de niveles:
+- `user_progress` se crea en registro; para usuarios antiguos, las APIs crean la fila si falta.
+- `complete-mission.php` suma XP solo la primera vez que completas una misión.
+
+## 7) Docker
+
+Archivo: `database/docker-compose.yml`
+- Servicio `mysql` (MySQL 8.0)
+  - Expone `3306:3306`
+  - Inicializa con `database/init.sql`
+- Servicio `web` (PHP 8.2 + Apache)
+  - Expone `8000:80`
+  - Variables DB apuntan a `DB_HOST=mysql`
+  - Monta el repo completo como `..:/var/www:ro`
+
+Imagen web: `database/php/Dockerfile`
+- Base: `php:8.2-apache`
+- Instala `pdo_mysql`
+- Ajusta DocumentRoot a `/var/www/public`
+
+## 8) Notas rápidas / troubleshooting
+
+- Si el front muestra errores al llamar `/api/*`, asegúrate de abrir por HTTP (ej. `http://localhost:8000/`).
+- Si el correo no sale:
+  - crea `config/mail.php` con credenciales reales o exporta `SMTP_*`.
+  - habilita `APP_DEBUG=1` temporalmente para ver mensajes de error controlados.
+- El link de reset de contraseña está hardcodeado a `http://localhost:8000/...` (si cambias el puerto/host, hay que ajustar ese valor).

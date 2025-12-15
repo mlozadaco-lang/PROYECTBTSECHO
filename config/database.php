@@ -1,8 +1,8 @@
 <?php
-$host = "127.0.0.1";
-$db   = "btsecho";
-$user = "admin";
-$pass = "admin123";
+$host = getenv("DB_HOST") ?: "127.0.0.1";
+$db   = getenv("DB_NAME") ?: "btsecho";
+$user = getenv("DB_USER") ?: "admin";
+$pass = getenv("DB_PASS") ?: "admin123";
 
 try {
   $pdo = new PDO(
