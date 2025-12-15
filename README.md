@@ -3,6 +3,7 @@
 Proyecto web (Front estático) + APIs en PHP + MySQL (Docker).
 
 Si quieres una vista completa del proyecto (qué hay, cómo se conecta todo), revisa el archivo **resumen** en la raíz del repo.
+Si quieres ubicarte rápido en el código, revisa: `docs/como-leer-el-codigo.md`.
 
 ## Quickstart (Docker, 2 minutos)
 
@@ -56,7 +57,8 @@ La idea general: **Front estático** (HTML/CSS/JS) consume **APIs PHP** en `publ
 
 - **Portal** (`public/index.html`)
   - UI de personajes + burbuja Spotify embed: `public/assets/js/members.js` + `public/assets/js/script.js`
-  - Reproductor superior (audio local) + Top semanal (clics Spotify): `public/assets/js/player.js`
+  - Reproductor superior (audio local): `public/assets/js/player.js`
+  - Top semanal (clics Spotify): `public/assets/js/weekly-spotify-top.js`
     - Consume: `GET /api/spotify-clicks-top-weekly.php`
   - Top BTS actual (Spotify real, sin login) + tracking de clics: `public/assets/js/spotify.js`
     - Consume: `GET /api/spotify-bts-top.php`, `POST /api/spotify-click.php`
