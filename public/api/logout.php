@@ -1,11 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/_api.php';
+api_bootstrap(true);
 
-header("Content-Type: application/json; charset=utf-8");
+// WHY: centralize JSON responses and keep endpoint small.
 
 session_unset();  // Limpia las variables de sesión
 session_destroy();  // Destruye la sesión
 
-echo json_encode([
-    "success" => true
-]);
+api_ok();
+

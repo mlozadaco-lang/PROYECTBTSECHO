@@ -1,4 +1,5 @@
-const IS_FILE = location.protocol === "file:";
+// WHY: use shared helper (api.js) to avoid duplicating fetch helpers across files.
+const IS_FILE = window.BtsEchoApi?.isFileProtocol ? window.BtsEchoApi.isFileProtocol() : (location.protocol === "file:");
 
 function wireStaticButtons() {
     const actions = {
@@ -26,12 +27,16 @@ function escapeHtml(value) {
 }
 
 async function fetchJson(url, options) {
+    // WHY: keep local wrapper name so the rest of the file stays readable,
+    // but delegate implementation to the shared helper.
+    if (window.BtsEchoApi?.requestJson) return window.BtsEchoApi.requestJson(url, options);
+    // Fallback (should be rare): minimal behavior if api.js wasn't loaded.
     try {
         const res = await fetch(url, options);
         const data = await res.json().catch(() => null);
         return { ok: res.ok, data };
     } catch {
-        return { ok: false, data: null };
+        return { ok: false, status: 0, data: null };
     }
 }
 

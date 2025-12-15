@@ -4,7 +4,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (!form || !messageDiv) return;
 
-    if (location.protocol === "file:") {
+    // WHY: keep the file:// guard, but prefer the shared helper so behavior matches other pages.
+    const api = window.BtsEchoApi;
+    if (api?.isFileProtocol ? api.isFileProtocol() : (location.protocol === "file:")) {
         messageDiv.textContent = "Abre esta página desde http://localhost:8000/ para poder llamar a /api/reset-password.php";
         messageDiv.style.color = "red";
         return;
@@ -36,13 +38,16 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         try {
-            const response = await fetch("/api/reset-password.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token: resetToken, password })
-            });
+            // WHY: shared helper centralizes headers + JSON parsing.
+            const result = api?.postJson
+                ? await api.postJson("/api/reset-password.php", { token: resetToken, password })
+                : await fetch("/api/reset-password.php", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token: resetToken, password })
+                }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => null) }));
 
-            const data = await response.json();
+            const data = result.data || {};
 
             if (data.success) {
                 messageDiv.textContent = "Contraseña restablecida correctamente.";

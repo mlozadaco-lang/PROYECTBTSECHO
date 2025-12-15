@@ -9,25 +9,8 @@
 ------------------------------------------------------------ */
 const themeToggleBtn = document.getElementById("themeToggle");
 
-function isFileProtocol() {
-    return location.protocol === "file:";
-}
-
-async function fetchJson(url, opts) {
-    const res = await fetch(url, {
-        headers: { "Accept": "application/json", ...(opts?.headers || {}) },
-        ...opts,
-    });
-    return res.json();
-}
-
-async function postJson(url, payload) {
-    return fetchJson(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload || {}),
-    });
-}
+// WHY: these helpers exist in public/assets/js/api.js to keep code DRY across pages.
+const api = window.BtsEchoApi;
 
 function findArmyModeMission(missions) {
     if (!Array.isArray(missions)) return null;
@@ -39,13 +22,15 @@ async function autoCompleteArmyModeMissionIfPossible(isArmyEnabled) {
     if (!isArmyEnabled) return;
 
     // Si estás en file://, no hay API.
-    if (isFileProtocol()) return;
+    if (api?.isFileProtocol && api.isFileProtocol()) return;
 
     try {
-        const session = await fetchJson("/api/session.php");
+        const sessionResp = api?.requestJson ? await api.requestJson("/api/session.php") : null;
+        const session = sessionResp?.data;
         if (!session?.logged) return;
 
-        const missionsData = await fetchJson("/api/missions.php");
+        const missionsResp = api?.requestJson ? await api.requestJson("/api/missions.php") : null;
+        const missionsData = missionsResp?.data;
         const missions = Array.isArray(missionsData?.missions) ? missionsData.missions : [];
 
         const armyMission = findArmyModeMission(missions);
@@ -54,7 +39,9 @@ async function autoCompleteArmyModeMissionIfPossible(isArmyEnabled) {
         // Si ya estaba completada, no hacemos nada.
         if (String(armyMission.status || "").toLowerCase() === "completed") return;
 
-        await postJson("/api/complete-mission.php", {
+        // WHY: shared postJson keeps headers/body consistent across the app.
+        if (!api?.postJson) return;
+        await api.postJson("/api/complete-mission.php", {
             mission_id: Number(armyMission.id),
             proof: "Army Mode activado en el portal",
         });

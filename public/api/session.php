@@ -1,11 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/_api.php';
+api_bootstrap(true);
 
-header("Content-Type: application/json; charset=utf-8");
+// WHY: keep session endpoint minimal and consistent.
 
 if (isset($_SESSION["user_id"])) {
-    echo json_encode([
-        "success" => true,
+    api_ok([
         "logged" => true,
         "user" => [
             "name" => $_SESSION["name"],
@@ -13,8 +13,7 @@ if (isset($_SESSION["user_id"])) {
         ]
     ]);
 } else {
-    echo json_encode([
-        "success" => true,
+    api_ok([
         "logged" => false
     ]);
 }

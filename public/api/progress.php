@@ -7,21 +7,12 @@
  * - Si la fila no existe (usuarios antiguos), la crea con valores por defecto.
  */
 
-header("Content-Type: application/json; charset=utf-8");
-session_start();
+require_once __DIR__ . '/_api.php';
+api_bootstrap(true);
 
 require_once __DIR__ . "/../../config/database.php";
 
-if (!isset($_SESSION["user_id"])) {
-    http_response_code(401);
-    echo json_encode([
-        "success" => false,
-        "message" => "Debes iniciar sesión."
-    ]);
-    exit;
-}
-
-$userId = (int)$_SESSION["user_id"];
+$userId = api_require_login("Debes iniciar sesión.");
 
 // Regla simple y fácil de entender:
 // cada 20 XP subes 1 nivel.
@@ -44,8 +35,7 @@ try {
     $xpToNextLevel = $xpPerLevel - $xpIntoLevel;
     $nextLevelAtTotalXp = $level * $xpPerLevel;
 
-    echo json_encode([
-        "success" => true,
+    api_ok([
         "progress" => [
             "level" => $level,
             "experience" => $experience,
@@ -56,9 +46,5 @@ try {
         ]
     ]);
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        "success" => false,
-        "message" => "Error interno del servidor"
-    ]);
+    api_fail(500, "Error interno del servidor");
 }

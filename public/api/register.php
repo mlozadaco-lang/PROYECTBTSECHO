@@ -1,29 +1,26 @@
 <?php
-header("Content-Type: application/json; charset=utf-8");
+require_once __DIR__ . '/_api.php';
+api_bootstrap(false);
+
+// WHY: share boilerplate JSON parsing/response helpers across endpoints.
 require_once __DIR__ . "/../../config/database.php";
 
-$data = json_decode(file_get_contents("php://input"), true);
+$data = api_read_json_body();
 
 $name = trim($data["name"] ?? "");
 $email = trim($data["email"] ?? "");
 $pass  = trim($data["password"] ?? "");
 
 if (!$name || !$email || !$pass) {
-  http_response_code(400);
-  echo json_encode(["success" => false, "message" => "Completa todos los campos"]);
-  exit;
+  api_fail(400, "Completa todos los campos");
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-  http_response_code(400);
-  echo json_encode(["success" => false, "message" => "Correo inválido"]);
-  exit;
+  api_fail(400, "Correo inválido");
 }
 
 if (mb_strlen($pass) < 8) {
-  http_response_code(400);
-  echo json_encode(["success" => false, "message" => "La contraseña debe tener mínimo 8 caracteres"]);
-  exit;
+  api_fail(400, "La contraseña debe tener mínimo 8 caracteres");
 }
 
 $hash = password_hash($pass, PASSWORD_DEFAULT);
@@ -43,17 +40,14 @@ try {
 
   $pdo->commit();
 
-  echo json_encode(["success" => true, "message" => "Registro exitoso 💜"]);
+  api_ok(["message" => "Registro exitoso 💜"]);
 } catch (PDOException $e) {
   if ($pdo->inTransaction()) {
     $pdo->rollBack();
   }
   if ((string)$e->getCode() === "23000") {
-    http_response_code(409);
-    echo json_encode(["success" => false, "message" => "Correo ya registrado"]);
-    exit;
+    api_fail(409, "Correo ya registrado");
   }
 
-  http_response_code(500);
-  echo json_encode(["success" => false, "message" => "Error interno del servidor"]);
+  api_fail(500, "Error interno del servidor");
 }
