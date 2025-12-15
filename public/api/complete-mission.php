@@ -9,43 +9,26 @@
  * Nota (para el equipo): esto es la base del "progreso real" de Misiones.
  */
 
-header("Content-Type: application/json; charset=utf-8");
-session_start();
+require_once __DIR__ . '/_api.php';
+api_bootstrap(true);
+
+// WHY: reduce boilerplate (headers/session/body parsing) and keep responses consistent.
 
 require_once __DIR__ . "/../../config/database.php";
 
-if (!isset($_SESSION["user_id"])) {
-    http_response_code(401);
-    echo json_encode([
-        "success" => false,
-        "message" => "Debes iniciar sesión para completar misiones."
-    ]);
-    exit;
-}
-
-$raw = file_get_contents("php://input");
-$data = json_decode($raw, true);
+$userId = api_require_login("Debes iniciar sesión para completar misiones.");
+$data = api_read_json_body();
 
 $missionId = (int)($data["mission_id"] ?? 0);
 $proof = trim((string)($data["proof"] ?? ""));
 if ($missionId <= 0) {
-    http_response_code(400);
-    echo json_encode([
-        "success" => false,
-        "message" => "mission_id inválido"
-    ]);
-    exit;
+    api_fail(400, "mission_id inválido");
 }
 
 // Anti-trampa (MVP): para completar, pedimos una “prueba” (texto o link).
 // Importante: esto NO valida el mundo real (streaming real, etc.), pero evita el click vacío.
 if ($proof === "" || mb_strlen($proof) < 5) {
-    http_response_code(400);
-    echo json_encode([
-        "success" => false,
-        "message" => "Agrega una prueba (texto o link) para completar la misión."
-    ]);
-    exit;
+    api_fail(400, "Agrega una prueba (texto o link) para completar la misión.");
 }
 
 // Límite simple para evitar payloads gigantes.
@@ -53,11 +36,15 @@ if (mb_strlen($proof) > 2000) {
     $proof = mb_substr($proof, 0, 2000);
 }
 
-$userId = (int)$_SESSION["user_id"];
-
 // Regla simple y fácil de entender:
 // cada 20 XP subes 1 nivel.
 $xpPerLevel = 20;
+
+// WHY: helper to rollback before returning an API error during a transaction.
+$failTx = function(int $status, string $message, array $extra = []) use ($pdo): void {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    api_fail($status, $message, $extra);
+};
 
 try {
     $pdo->beginTransaction();
@@ -68,13 +55,7 @@ try {
     $mission = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$mission) {
-        http_response_code(404);
-        $pdo->rollBack();
-        echo json_encode([
-            "success" => false,
-            "message" => "Misión no encontrada"
-        ]);
-        exit;
+        $failTx(404, "Misión no encontrada");
     }
 
     $rewardXp = (int)($mission["reward_xp"] ?? 0);
@@ -132,8 +113,7 @@ try {
 
     $pdo->commit();
 
-    echo json_encode([
-        "success" => true,
+    api_ok([
         "message" => $alreadyCompleted ? "Misión ya estaba completada (prueba actualizada)" : "Misión completada",
         "mission_id" => $missionId,
         "status" => "completed",
@@ -145,12 +125,5 @@ try {
         ]
     ]);
 } catch (Exception $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    http_response_code(500);
-    echo json_encode([
-        "success" => false,
-        "message" => "Error interno del servidor"
-    ]);
+    $failTx(500, "Error interno del servidor");
 }

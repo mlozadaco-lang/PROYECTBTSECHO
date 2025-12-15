@@ -10,8 +10,10 @@
  * Nota: esto permite que el front muestre "Pendiente" / "Completada".
  */
 
-header("Content-Type: application/json; charset=utf-8");
-session_start();
+require_once __DIR__ . '/_api.php';
+api_bootstrap(true);
+
+// WHY: api_bootstrap/api_ok/api_fail keep JSON output consistent across endpoints.
 
 require_once __DIR__ . "/../../config/database.php";
 
@@ -56,15 +58,9 @@ try {
         $missions = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    echo json_encode([
-        "success" => true,
+    api_ok([
         "missions" => $missions
     ]);
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        "success" => false,
-        "message" => "Error interno del servidor",
-        "missions" => []
-    ]);
+    api_fail(500, "Error interno del servidor", ["missions" => []]);
 }

@@ -11,12 +11,16 @@ const welcomeBlock = document.getElementById("welcomeBlock");
 const levelBar = document.getElementById("levelBar");
 const levelBarFill = document.getElementById("levelBarFill");
 
+// WHY: shared API helper reduces duplicated fetch/JSON parsing across files.
+const api = window.BtsEchoApi;
+
 function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
 }
 
 function isFileProtocol() {
-    return location.protocol === "file:";
+    // WHY: keep a single definition of file:// detection (api.js) when available.
+    return api?.isFileProtocol ? api.isFileProtocol() : (location.protocol === "file:");
 }
 
 function hide(el) {
@@ -41,16 +45,16 @@ async function readJsonResponse(res) {
 }
 
 async function postJson(url, payload, fileProtocolErrorMessage) {
-    if (isFileProtocol()) {
-        throw new Error(fileProtocolErrorMessage);
-    }
+    // WHY: delegate to api.js for consistent Accept/Content-Type and safe JSON parsing.
+    if (isFileProtocol()) throw new Error(fileProtocolErrorMessage);
+    if (api?.postJson) return api.postJson(url, payload);
 
+    // Fallback: preserve previous behavior if api.js was not loaded.
     const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload || {})
     });
-
     const data = await readJsonResponse(res);
     return { ok: res.ok, data };
 }
@@ -80,8 +84,11 @@ function updateLevelBar(progress) {
 
 async function getProgress() {
     try {
-        const res = await fetch("/api/progress.php", { headers: { "Accept": "application/json" } });
-        const data = await res.json();
+        const result = api?.requestJson
+            ? await api.requestJson("/api/progress.php")
+            : await fetch("/api/progress.php", { headers: { "Accept": "application/json" } }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => null) }));
+
+        const data = result?.data;
         if (data?.success && data?.progress) return data.progress;
         return null;
     } catch {
@@ -91,8 +98,11 @@ async function getProgress() {
 
 async function refreshHeaderUser() {
     try {
-        const res = await fetch("/api/session.php", { headers: { "Accept": "application/json" } });
-        const data = await res.json();
+        const result = api?.requestJson
+            ? await api.requestJson("/api/session.php")
+            : await fetch("/api/session.php", { headers: { "Accept": "application/json" } }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => null) }));
+
+        const data = result?.data;
 
         if (!data.logged) {
             // Asegura estado "logged out" limpio
@@ -268,7 +278,13 @@ if (authLogin) {
 ============================================================ */
 if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {
-        await fetch("/api/logout.php");
+        // WHY: keep logout robust if server returns non-JSON (we don't need response content).
+        try {
+            if (api?.requestJson) await api.requestJson("/api/logout.php", { method: "POST" });
+            else await fetch("/api/logout.php");
+        } catch {
+            // ignore
+        }
         location.reload();
     });
 }
@@ -327,14 +343,14 @@ if (openForgot) {
 
 
     try {
-      const res = await fetch("/api/forgot-password.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
-      });
+            // WHY: use shared helper to reduce boilerplate (headers + JSON parsing).
+            const result = await postJson(
+                "/api/forgot-password.php",
+                { email },
+                "Estás abriendo el proyecto como archivo (file://). Abre http://localhost:8000/ para que /api/forgot-password.php funcione."
+            );
 
-      const text = await res.text();
-      const data = JSON.parse(text);
+            const data = result.data || { success: false, message: "Respuesta inválida del servidor" };
 
       Swal.fire({
         icon: data.success ? 'success' : 'error',
