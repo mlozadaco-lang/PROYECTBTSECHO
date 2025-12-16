@@ -225,8 +225,9 @@ Todos viven en `public/api/`.
 
 Definida en `database/init.sql`.
 
-Nota: el `init.sql` actual es el **esquema core (MVP)**: crea solo lo que el código usa hoy.
-La versión completa anterior quedó guardada en `database/init.full.sql`.
+Nota:
+- `database/init.sql` es el **esquema completo** (incluye tablas que se usarán después).
+- Si quieres una instalación mínima (solo lo que el código usa hoy), usa `database/init.core.sql`.
 
 Tablas principales:
 - Auth:
@@ -242,9 +243,9 @@ Tablas principales:
 Datos iniciales:
 - Misiones: 3 misiones de ejemplo (para que Misiones cargue data)
 
-Limpieza de tablas no usadas (si tu BD ya estaba creada con el esquema completo):
-- Script manual: `database/cleanup.sql`
-- Importante: borra tablas y datos, úsalo solo si confirmas que no las necesitas.
+Limpieza (opcional):
+- `database/cleanup.sql` existe para borrar módulos “no usados todavía”.
+- Si esas tablas se usarán después, NO ejecutes ese script.
 
 Notas de progreso real:
 - `user_missions` guarda el progreso por usuario. La PK es compuesta (`user_id`, `mission_id`).
