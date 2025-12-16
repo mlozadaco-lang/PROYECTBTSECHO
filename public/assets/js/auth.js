@@ -1,3 +1,4 @@
+// Archivo: public/assets/js/auth.js — Propósito: UI + lógica de login/registro/logout/sesión y “forgot password” (SweetAlert) consumiendo /api/*.
 /* ============================================================
    SISTEMA DE LOGIN — BTS ECHO
    Login real con PHP + MySQL
@@ -11,16 +12,36 @@ const welcomeBlock = document.getElementById("welcomeBlock");
 const levelBar = document.getElementById("levelBar");
 const levelBarFill = document.getElementById("levelBarFill");
 
+// Signal to index.html inline fallbacks that the real auth logic is active.
+window.__BtsEchoAuthWired = true;
+
 // WHY: shared API helper reduces duplicated fetch/JSON parsing across files.
 const api = window.BtsEchoApi;
 
-function clamp(n, min, max) {
-    return Math.max(min, Math.min(max, n));
+function isFileProtocol() {
+    return api?.isFileProtocol ? api.isFileProtocol() : (location.protocol === "file:");
 }
 
-function isFileProtocol() {
-    // WHY: keep a single definition of file:// detection (api.js) when available.
-    return api?.isFileProtocol ? api.isFileProtocol() : (location.protocol === "file:");
+async function requestJson(url, opts) {
+    if (api?.requestJson) return api.requestJson(url, opts);
+
+    const mergedHeaders = {
+        ...(opts && opts.headers ? opts.headers : {}),
+        Accept: "application/json",
+    };
+
+    const res = await fetch(url, {
+        ...(opts || {}),
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: mergedHeaders,
+    });
+    const data = await res.json().catch(() => null);
+    return { ok: res.ok, status: res.status, data };
+}
+
+function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
 }
 
 function hide(el) {
@@ -35,28 +56,46 @@ function setText(el, value) {
     if (el) el.textContent = value == null ? "" : String(value);
 }
 
-async function readJsonResponse(res) {
-    const raw = await res.text();
-    try {
-        return raw ? JSON.parse(raw) : null;
-    } catch {
-        throw new Error("Respuesta no-JSON del servidor: " + String(raw || "").slice(0, 200));
+function requireHttpForApi(message) {
+    // WHY: multiple auth actions call /api/*; centralize file:// guard.
+    if (api?.assertHttp) {
+        api.assertHttp(message);
+        return;
+    }
+    if (isFileProtocol()) {
+        throw new Error(message || "Abre el sitio por http://localhost para usar /api/*");
     }
 }
 
+function fileProtocolMessageFor(endpoint) {
+    return `Estás abriendo el proyecto como archivo (file://). Abre http://localhost:8000/ para que ${endpoint} funcione.`;
+}
+
 async function postJson(url, payload, fileProtocolErrorMessage) {
-    // WHY: delegate to api.js for consistent Accept/Content-Type and safe JSON parsing.
-    if (isFileProtocol()) throw new Error(fileProtocolErrorMessage);
+    // WHY: delegate to api.js for consistent headers + JSON parsing.
+    requireHttpForApi(fileProtocolErrorMessage);
     if (api?.postJson) return api.postJson(url, payload);
 
-    // Fallback: preserve previous behavior if api.js was not loaded.
+    // Fallback: minimal behavior if api.js wasn't loaded.
     const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "Accept": "application/json", "Content-Type": "application/json" },
         body: JSON.stringify(payload || {})
     });
-    const data = await readJsonResponse(res);
-    return { ok: res.ok, data };
+    const data = await res.json().catch(() => null);
+    return { ok: res.ok, status: res.status, data };
+}
+
+function setHeaderLoggedOut() {
+    // Asegura estado "logged out" limpio
+    setText(welcomeUser, "");
+    hide(welcomeUser);
+    hide(welcomeBlock);
+    hide(logoutBtn);
+    show(loginBtn);
+    updateLevelBar(null);
 }
 
 function updateLevelBar(progress) {
@@ -83,35 +122,29 @@ function updateLevelBar(progress) {
 }
 
 async function getProgress() {
+    if (isFileProtocol()) return null;
     try {
-        const result = api?.requestJson
-            ? await api.requestJson("/api/progress.php")
-            : await fetch("/api/progress.php", { headers: { "Accept": "application/json" } }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => null) }));
-
+        const result = await requestJson("/api/progress.php");
         const data = result?.data;
         if (data?.success && data?.progress) return data.progress;
-        return null;
     } catch {
-        return null;
+        // ignore
     }
+    return null;
 }
 
 async function refreshHeaderUser() {
-    try {
-        const result = api?.requestJson
-            ? await api.requestJson("/api/session.php")
-            : await fetch("/api/session.php", { headers: { "Accept": "application/json" } }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => null) }));
+    if (isFileProtocol()) {
+        setHeaderLoggedOut();
+        return;
+    }
 
+    try {
+        const result = await requestJson("/api/session.php");
         const data = result?.data;
 
-        if (!data.logged) {
-            // Asegura estado "logged out" limpio
-            setText(welcomeUser, "");
-            hide(welcomeUser);
-            hide(welcomeBlock);
-            hide(logoutBtn);
-            show(loginBtn);
-            updateLevelBar(null);
+        if (!data?.logged) {
+            setHeaderLoggedOut();
             return;
         }
 
@@ -126,7 +159,7 @@ async function refreshHeaderUser() {
         show(logoutBtn);
         hide(loginBtn);
     } catch {
-        console.warn("No se pudo verificar la sesión");
+        setHeaderLoggedOut();
     }
 }
 
@@ -151,18 +184,60 @@ const regPass  = document.getElementById("regPass");
 const registerMsg = document.getElementById("registerMessage");
 const confirmRegister = document.getElementById("confirmRegister");
 
+// WHY: auth.js uses SweetAlert in a single place; centralize repeated theme options.
+const SWAL_THEME = {
+    background: "#0f0f1a",
+    color: "#ffffff",
+    confirmButtonColor: "#7c6cff",
+    animation: false,
+    heightAuto: false,
+    width: 420,
+};
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Fallback: si por alguna razón el listener directo falla, capturamos el click en Login.
+// Esto evita el caso "aprieto Login y no pasa nada".
+document.addEventListener(
+    "click",
+    (e) => {
+        const t = e && e.target;
+        if (!t || t.id !== "loginBtn") return;
+        try {
+            show(authModal);
+            setText(authMsg, "");
+        } catch {
+            // ignore
+        }
+    },
+    true
+);
+
 /* ============================================================
    VERIFICAR SESIÓN AL CARGAR
 ============================================================ */
-window.addEventListener("DOMContentLoaded", async () => {
-    await refreshHeaderUser();
+async function bootAuthHeader() {
+    try {
+        await refreshHeaderUser();
+    } catch {
+        // ignore
+    }
+}
+
+// IMPORTANT: Do not rely only on DOMContentLoaded.
+// Some browsers delay it if a deferred CDN script stalls.
+bootAuthHeader();
+window.addEventListener("pageshow", bootAuthHeader);
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") bootAuthHeader();
 });
 
 /* ============================================================
    ABRIR LOGIN
 ============================================================ */
 if (loginBtn) {
-    loginBtn.addEventListener("click", () => {
+    loginBtn.addEventListener("click", (e) => {
+        if (e && typeof e.preventDefault === "function") e.preventDefault();
         show(authModal);
         setText(authMsg, "");
     });
@@ -203,7 +278,10 @@ if (closeRegister) {
    REGISTRAR USUARIO (MODAL REGISTRO)
 ============================================================ */
 if (confirmRegister) {
-    confirmRegister.addEventListener("click", async () => {
+    confirmRegister.addEventListener("click", async (e) => {
+        if (e && typeof e.preventDefault === "function") e.preventDefault();
+
+        setText(registerMsg, "Procesando...");
 
         const name  = regName.value.trim();
         const email = regEmail.value.trim();
@@ -218,7 +296,7 @@ if (confirmRegister) {
             const result = await postJson(
                 "/api/register.php",
                 { name, email, password: pass },
-                "Estás abriendo el proyecto como archivo (file://). Abre http://localhost:8000/ para que /api/register.php funcione."
+                fileProtocolMessageFor("/api/register.php")
             );
 
             setText(registerMsg, result.data?.message);
@@ -236,11 +314,30 @@ if (confirmRegister) {
     });
 }
 
+// UX: permitir Enter para login/registro (sin form).
+function wireEnterToClick(inputEl, buttonEl) {
+    if (!inputEl || !buttonEl) return;
+    inputEl.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        buttonEl.click();
+    });
+}
+
+wireEnterToClick(authEmail, authLogin);
+wireEnterToClick(authPass, authLogin);
+wireEnterToClick(regName, confirmRegister);
+wireEnterToClick(regEmail, confirmRegister);
+wireEnterToClick(regPass, confirmRegister);
+
 /* ============================================================
    INICIAR SESIÓN
 ============================================================ */
 if (authLogin) {
-    authLogin.addEventListener("click", async () => {
+    authLogin.addEventListener("click", async (e) => {
+        if (e && typeof e.preventDefault === "function") e.preventDefault();
+
+        setText(authMsg, "Procesando...");
 
         const email = authEmail.value.trim();
         const pass  = authPass.value.trim();
@@ -254,15 +351,21 @@ if (authLogin) {
             const result = await postJson(
                 "/api/login.php",
                 { email, password: pass },
-                "Estás abriendo el proyecto como archivo (file://). Abre http://localhost:8000/ para que /api/login.php funcione."
+                fileProtocolMessageFor("/api/login.php")
             );
 
             if (result.data?.success) {
+                const token = result.data?.token ? String(result.data.token) : "";
+                if (token) {
+                    window.__BtsEchoAuthToken = token;
+                    try { localStorage.setItem("btsecho_auth_token", token); } catch {}
+                }
+
+                // NOTE: We intentionally reload after login.
+                // Some browsers may not attach a newly-set session cookie until after navigation.
                 hide(authModal);
                 setText(authMsg, "");
-
-                // Actualiza header con nivel/XP
-                await refreshHeaderUser();
+                location.reload();
             } else {
                 setText(authMsg, result.data?.message);
             }
@@ -277,7 +380,10 @@ if (authLogin) {
    CERRAR SESIÓN
 ============================================================ */
 if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
+    logoutBtn.addEventListener("click", async (e) => {
+        if (e && typeof e.preventDefault === "function") e.preventDefault();
+        try { localStorage.removeItem("btsecho_auth_token"); } catch {}
+        try { delete window.__BtsEchoAuthToken; } catch {}
         // WHY: keep logout robust if server returns non-JSON (we don't need response content).
         try {
             if (api?.requestJson) await api.requestJson("/api/logout.php", { method: "POST" });
@@ -298,6 +404,29 @@ if (openForgot) {
   openForgot.addEventListener("click", async (e) => {
     e.preventDefault();
 
+        // Si el CDN de SweetAlert2 está bloqueado o tarda, no rompemos el flujo.
+        if (typeof window.Swal === "undefined") {
+            const email = (prompt("Recuperar contraseña\n\nIngresa tu correo:") || "").trim();
+            if (!email) return;
+            if (!EMAIL_REGEX.test(email)) {
+                alert("Ingresa un correo válido");
+                return;
+            }
+
+            try {
+                const result = await postJson(
+                    "/api/forgot-password.php",
+                    { email },
+                    fileProtocolMessageFor("/api/forgot-password.php")
+                );
+                const data = result.data || { success: false, message: "Respuesta inválida del servidor" };
+                alert(data.message);
+            } catch {
+                alert("No se pudo enviar el correo. Intenta más tarde.");
+            }
+            return;
+        }
+
     const { value: email } = await Swal.fire({
     title: 'Recuperar contraseña 💜',
     text: 'Ingresa tu correo',
@@ -309,9 +438,7 @@ if (openForgot) {
     cancelButtonText: 'Cancelar',
 
     autoFocus: false,
-    animation: false,
-    heightAuto: false,
-    width: 420,
+    ...SWAL_THEME,
 
     inputAttributes: {
         autocomplete: 'off',
@@ -321,19 +448,14 @@ if (openForgot) {
         name: 'no-autofill-email', // 👈 CLAVE
     },
 
-    background: '#0f0f1a',
-    color: '#ffffff',
-    confirmButtonColor: '#7c6cff',
-
     preConfirm: (value) => {
         if (!value) {
-        Swal.showValidationMessage('Debes ingresar un correo');
-        return false;
+            Swal.showValidationMessage('Debes ingresar un correo');
+            return false;
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(value)) {
-        Swal.showValidationMessage('Ingresa un correo válido');
-        return false;
+        if (!EMAIL_REGEX.test(value)) {
+            Swal.showValidationMessage('Ingresa un correo válido');
+            return false;
         }
         return value;
     }
@@ -347,29 +469,25 @@ if (openForgot) {
             const result = await postJson(
                 "/api/forgot-password.php",
                 { email },
-                "Estás abriendo el proyecto como archivo (file://). Abre http://localhost:8000/ para que /api/forgot-password.php funcione."
+                fileProtocolMessageFor("/api/forgot-password.php")
             );
 
             const data = result.data || { success: false, message: "Respuesta inválida del servidor" };
 
-      Swal.fire({
-        icon: data.success ? 'success' : 'error',
-        title: data.success ? 'Correo enviado 💜' : 'Ups',
-        text: data.message,
-        confirmButtonText: 'Aceptar',
-        background: '#0f0f1a',
-        color: '#ffffff',
-        confirmButtonColor: '#7c6cff'
-      });
+            Swal.fire({
+                icon: data.success ? 'success' : 'error',
+                title: data.success ? 'Correo enviado 💜' : 'Ups',
+                text: data.message,
+                confirmButtonText: 'Aceptar',
+                ...SWAL_THEME,
+            });
 
     } catch (err) {
       Swal.fire({
         icon: 'error',
         title: 'Error',
         text: 'No se pudo enviar el correo. Intenta más tarde.',
-        confirmButtonColor: '#7c6cff',
-        background: '#0f0f1a',
-        color: '#ffffff'
+                ...SWAL_THEME
       });
     }
   });

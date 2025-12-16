@@ -1,4 +1,5 @@
 <?php
+// Archivo: public/api/reset-password.php — Propósito: restablecer contraseña usando token (password_resets) y marcar token como usado.
 require_once __DIR__ . '/_api.php';
 api_bootstrap(false);
 
@@ -6,6 +7,8 @@ api_bootstrap(false);
 
 // conexión DB
 require_once __DIR__ . "/../../config/database.php";
+
+api_require_method('POST');
 
 // leer JSON
 $data = api_read_json_body();

@@ -1,3 +1,4 @@
+-- Archivo: database/cleanup.sql — Propósito: script manual para borrar tablas no usadas (PELIGRO: borra datos).
 -- =====================================================
 -- BTS Echo — Cleanup de tablas no usadas (manual)
 --

@@ -1,4 +1,5 @@
 <?php
+// Archivo: public/api/missions.php — Propósito: listar misiones; si hay sesión, incluye status/proof/completed_at desde user_missions.
 /**
  * Endpoint: GET /api/missions.php
  *
@@ -17,8 +18,10 @@ api_bootstrap(true);
 
 require_once __DIR__ . "/../../config/database.php";
 
+api_require_method('GET');
+
 try {
-    $userId = isset($_SESSION["user_id"]) ? (int)$_SESSION["user_id"] : 0;
+    $userId = (int)(api_optional_user_id() ?? 0);
 
     if ($userId > 0) {
         // Usuario logueado: devolvemos el status desde user_missions

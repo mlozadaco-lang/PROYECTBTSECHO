@@ -1,3 +1,4 @@
+// Archivo: public/assets/js/weekly-spotify-top.js — Propósito: render del “Top semanal (clics Spotify)” consumiendo /api/spotify-clicks-top-weekly.php.
 /*
   BTS Echo — Top semanal (clics Spotify)
 

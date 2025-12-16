@@ -1,3 +1,4 @@
+# Archivo: .gitignore — Propósito: evitar subir secretos locales y archivos generados.
 # ===============================
 # Archivos sensibles (NO subir)
 # ===============================

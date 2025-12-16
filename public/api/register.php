@@ -1,9 +1,12 @@
 <?php
+// Archivo: public/api/register.php — Propósito: registrar usuario y crear progreso inicial (user_progress).
 require_once __DIR__ . '/_api.php';
 api_bootstrap(false);
 
 // WHY: share boilerplate JSON parsing/response helpers across endpoints.
 require_once __DIR__ . "/../../config/database.php";
+
+api_require_method('POST');
 
 $data = api_read_json_body();
 

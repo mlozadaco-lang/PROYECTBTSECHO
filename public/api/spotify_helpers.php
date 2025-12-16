@@ -1,11 +1,24 @@
 <?php
+// Archivo: public/api/spotify_helpers.php — Propósito: helpers para Spotify (config, token client_credentials, HTTP requests) usados por spotify-bts-top.php.
 
 // Helpers for Spotify Web API (client_credentials only).
 // OAuth endpoints were removed because Spotify requires HTTPS Redirect URIs.
 
+function spotify_trim_unquote(string $value): string {
+  $value = trim($value);
+  if (strlen($value) < 2) return $value;
+
+  $first = $value[0];
+  $last = $value[strlen($value) - 1];
+  if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+    return substr($value, 1, -1);
+  }
+  return $value;
+}
+
 function spotify_get_env_config(): array {
-  $clientId = getenv('SPOTIFY_CLIENT_ID') ?: '';
-  $clientSecret = getenv('SPOTIFY_CLIENT_SECRET') ?: '';
+  $clientId = (string)(getenv('SPOTIFY_CLIENT_ID') ?: '');
+  $clientSecret = (string)(getenv('SPOTIFY_CLIENT_SECRET') ?: '');
 
   // Optional file-based config (similar to config/mail.php)
   $cfgFile = __DIR__ . '/../../config/spotify.php';
@@ -17,20 +30,9 @@ function spotify_get_env_config(): array {
     }
   }
 
-  $clientId = trim((string)$clientId);
-  $clientSecret = trim((string)$clientSecret);
-
   // Some environments wrap values in quotes; remove a single pair if present.
-  foreach (['clientId', 'clientSecret'] as $varName) {
-    $value = (string)$$varName;
-    if (strlen($value) >= 2) {
-      $first = $value[0];
-      $last = $value[strlen($value) - 1];
-      if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
-        $$varName = substr($value, 1, -1);
-      }
-    }
-  }
+  $clientId = spotify_trim_unquote($clientId);
+  $clientSecret = spotify_trim_unquote($clientSecret);
 
   return [
     'client_id' => $clientId,
@@ -40,6 +42,7 @@ function spotify_get_env_config(): array {
 
 function spotify_http_request(string $method, string $url, array $headers = [], ?string $body = null): array {
   $method = strtoupper($method);
+  $timeout = 20;
 
   // Prefer cURL if available.
   if (function_exists('curl_init')) {
@@ -48,7 +51,7 @@ function spotify_http_request(string $method, string $url, array $headers = [], 
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
     curl_setopt($ch, CURLOPT_HEADER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+    curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
 
     if (!empty($headers)) {
       curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
@@ -75,17 +78,14 @@ function spotify_http_request(string $method, string $url, array $headers = [], 
   }
 
   // Fallback: stream context.
-  $headerString = '';
-  if (!empty($headers)) {
-    $headerString = implode("\r\n", $headers);
-  }
+  $headerString = !empty($headers) ? implode("\r\n", $headers) : '';
 
   $opts = [
     'http' => [
       'method' => $method,
       'ignore_errors' => true,
       'header' => $headerString,
-      'timeout' => 20,
+      'timeout' => $timeout,
     ],
   ];
   if ($body !== null) {

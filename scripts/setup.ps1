@@ -1,3 +1,4 @@
+# Archivo: scripts/setup.ps1 — Propósito: setup automático (crea database/.env si falta y levanta Docker Compose).
 param(
   [switch]$NonInteractive,
   [string]$SpotifyClientId,

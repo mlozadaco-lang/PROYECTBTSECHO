@@ -1,5 +1,7 @@
 <?php
 
+// Archivo: config/mail.example.php — Propósito: plantilla de config SMTP para PHPMailer (ejemplo sin secretos).
+
 // Example mail configuration for PHPMailer.
 // Copy to config/mail.php (which is gitignored) or set env vars.
 

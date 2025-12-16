@@ -1,10 +1,13 @@
 <?php
+// Archivo: public/api/forgot-password.php — Propósito: generar token de recuperación y enviar correo (PHPMailer; MailHog en Docker).
 require_once __DIR__ . '/_api.php';
 api_bootstrap(false);
 
 // WHY: shared helpers (_api.php) remove repeated JSON/header/body parsing boilerplate.
 
 require_once __DIR__ . "/../../config/database.php";
+
+api_require_method('POST');
 
 // PHPMailer (sin Composer)
 require_once __DIR__ . "/../../lib/PHPMailer/Exception.php";
@@ -14,19 +17,33 @@ require_once __DIR__ . "/../../lib/PHPMailer/SMTP.php";
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+function env_string(string $key, ?string $default = null): ?string {
+    $v = getenv($key);
+    if ($v === false) return $default;
+    $s = trim((string)$v);
+    return $s === '' ? $default : $s;
+}
+
+function env_bool(string $key, bool $default = false): bool {
+    $v = env_string($key);
+    if ($v === null) return $default;
+    $v = strtolower($v);
+    return in_array($v, ['1', 'true', 'yes', 'on'], true);
+}
+
+function env_enum(string $key, array $allow, string $default): string {
+    $v = strtolower((string)env_string($key, ''));
+    return in_array($v, $allow, true) ? $v : $default;
+}
+
 /* =====================================================
    1. LEER EMAIL
 ===================================================== */
 
 // WHY: keep compatibility with both JSON body and form POST.
-$json = api_read_json_body();
-
-$email = "";
-if (is_array($json) && isset($json["email"])) {
-    $email = trim($json["email"]);
-} elseif (isset($_POST["email"])) {
-    $email = trim($_POST["email"]);
-}
+$raw = api_read_raw_body();
+$body = api_parse_body($raw, true);
+$email = trim((string)($body["email"] ?? ($_POST["email"] ?? "")));
 
 if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) api_fail(400, "Correo inválido.");
 
@@ -84,26 +101,6 @@ function getBaseUrl(): string {
     return $scheme . '://' . $host;
 }
 
-function envFlag(string $key, ?string $default = null): ?string {
-    $v = getenv($key);
-    if ($v === false) return $default;
-    return (string)$v;
-}
-
-function normalizeSecure(?string $value): string {
-    $v = strtolower(trim((string)$value));
-    if ($v === 'tls') return 'tls';
-    if ($v === 'ssl') return 'ssl';
-    return 'none';
-}
-
-function normalizeAuth(?string $value): bool {
-    $v = strtolower(trim((string)$value));
-    if ($v === '1' || $v === 'true' || $v === 'yes' || $v === 'on') return true;
-    if ($v === '0' || $v === 'false' || $v === 'no' || $v === 'off') return false;
-    return false;
-}
-
 $resetLink = getBaseUrl() . "/reset-password.html?token=" . urlencode($token);
 
 /* =====================================================
@@ -132,12 +129,9 @@ try {
     $mail->Port = $port;
 
     // Auth/TLS opcional (para que funcione en Docker con MailHog sin credenciales)
-    $authEnv = envFlag('SMTP_AUTH');
-    $secureEnv = normalizeSecure(envFlag('SMTP_SECURE'));
-
-    $smtpAuth = ($authEnv !== null)
-        ? normalizeAuth($authEnv)
-        : (trim($username) !== '' || trim($password) !== '');
+    $hasCreds = (trim($username) !== '' || trim($password) !== '');
+    $smtpAuth = env_bool('SMTP_AUTH', $hasCreds);
+    $secureEnv = env_enum('SMTP_SECURE', ['tls', 'ssl'], 'none');
 
     $mail->SMTPAuth = $smtpAuth;
     if ($smtpAuth) {
@@ -154,10 +148,8 @@ try {
         $mail->SMTPAutoTLS = false;
     }
 
-    $from = envFlag('MAIL_FROM');
-    if (!is_string($from) || trim($from) === '') {
-        $from = (trim($username) !== '') ? $username : 'no-reply@btsecho.local';
-    }
+    $from = env_string('MAIL_FROM');
+    if ($from === null) $from = (trim($username) !== '') ? $username : 'no-reply@btsecho.local';
 
     $mail->setFrom($from, "BTS Echo 💜");
     $mail->addAddress($user["email"], $user["name"]);

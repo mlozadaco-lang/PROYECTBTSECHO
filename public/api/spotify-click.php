@@ -1,4 +1,5 @@
 <?php
+// Archivo: public/api/spotify-click.php — Propósito: registrar un clic a un link de Spotify en MySQL (portal_spotify_clicks).
 require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
@@ -8,33 +9,18 @@ require_once __DIR__ . '/_spotify_clicks.php';
 
 require_once __DIR__ . '/../../config/database.php';
 
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-  api_fail(405, 'Usa POST (application/json) para registrar el clic.');
-}
+api_require_method('POST', 'Usa POST (application/json) para registrar el clic.');
 
-$raw = file_get_contents('php://input');
-$data = null;
+$raw = api_read_raw_body();
+$data = api_parse_body($raw, true);
 
-if (is_string($raw) && trim($raw) !== '') {
-  $data = json_decode($raw, true);
-
-  // Some clients may send form-encoded bodies; accept as fallback.
-  if (!is_array($data)) {
-    $tmp = [];
-    parse_str($raw, $tmp);
-    if (is_array($tmp) && !empty($tmp)) {
-      $data = $tmp;
-    }
-  }
-}
-
-if (!is_array($data)) {
+if (empty($data)) {
   $debug = getenv('APP_DEBUG') === '1' ? [
     'debug' => [
       'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
       'content_length' => $_SERVER['CONTENT_LENGTH'] ?? null,
-      'raw_len' => is_string($raw) ? strlen($raw) : null,
-      'raw_preview' => is_string($raw) ? substr($raw, 0, 200) : null,
+      'raw_len' => strlen($raw),
+      'raw_preview' => substr($raw, 0, 200),
     ]
   ] : [];
 
@@ -68,7 +54,7 @@ if ($context && strlen($context) > 60) {
   $context = substr($context, 0, 60);
 }
 
-$userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+$userId = api_optional_user_id();
 
 try {
   ensure_portal_spotify_clicks_table($pdo);

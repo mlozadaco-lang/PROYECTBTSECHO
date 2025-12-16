@@ -1,8 +1,11 @@
 <?php
+// Archivo: public/api/spotify-bts-top.php — Propósito: consultar Spotify Web API (client_credentials) para obtener el Top actual de BTS.
 require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
 // WHY: centralize JSON header/session and consistent error responses.
+
+api_require_method('GET');
 
 require_once __DIR__ . '/spotify_helpers.php';
 
@@ -14,8 +17,7 @@ if (!$cfg['client_id'] || !$cfg['client_secret']) {
 $token = spotify_get_app_access_token_or_null();
 if (!$token) {
   $debug = (getenv('APP_DEBUG') === '1');
-  $cfg2 = spotify_get_env_config();
-  $tokenResp = $debug ? spotify_token_request(['grant_type' => 'client_credentials'], $cfg2) : null;
+  $tokenResp = $debug ? spotify_token_request(['grant_type' => 'client_credentials'], $cfg) : null;
   $status = $debug && is_array($tokenResp) ? (int)($tokenResp['status'] ?? 0) : null;
   $errJson = $debug && is_array($tokenResp) ? ($tokenResp['json'] ?? null) : null;
 
@@ -31,9 +33,8 @@ if (!$token) {
   ], 502);
 }
 
-$limit = (int)($_GET['limit'] ?? 10);
-if ($limit < 1) $limit = 10;
-if ($limit > 10) $limit = 10; // Spotify top-tracks returns up to 10
+$limitRaw = (int)($_GET['limit'] ?? 10);
+$limit = max(1, min(10, $limitRaw > 0 ? $limitRaw : 10)); // Spotify top-tracks returns up to 10
 
 $market = strtoupper(trim((string)($_GET['market'] ?? 'US')));
 if (!preg_match('/^[A-Z]{2}$/', $market)) {

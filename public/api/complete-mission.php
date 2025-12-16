@@ -1,4 +1,5 @@
 <?php
+// Archivo: public/api/complete-mission.php — Propósito: completar una misión (requiere sesión), guardar proof y sumar XP/nivel.
 /**
  * Endpoint: POST /api/complete-mission.php
  *
@@ -15,6 +16,8 @@ api_bootstrap(true);
 // WHY: reduce boilerplate (headers/session/body parsing) and keep responses consistent.
 
 require_once __DIR__ . "/../../config/database.php";
+
+api_require_method('POST');
 
 $userId = api_require_login("Debes iniciar sesión para completar misiones.");
 $data = api_read_json_body();
@@ -41,7 +44,7 @@ if (mb_strlen($proof) > 2000) {
 $xpPerLevel = 20;
 
 // WHY: helper to rollback before returning an API error during a transaction.
-$failTx = function(int $status, string $message, array $extra = []) use ($pdo): void {
+$txFail = function(int $status, string $message, array $extra = []) use ($pdo): void {
     if ($pdo->inTransaction()) $pdo->rollBack();
     api_fail($status, $message, $extra);
 };
@@ -55,7 +58,7 @@ try {
     $mission = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$mission) {
-        $failTx(404, "Misión no encontrada");
+        $txFail(404, "Misión no encontrada");
     }
 
     $rewardXp = (int)($mission["reward_xp"] ?? 0);
@@ -125,5 +128,5 @@ try {
         ]
     ]);
 } catch (Exception $e) {
-    $failTx(500, "Error interno del servidor");
+    $txFail(500, "Error interno del servidor");
 }

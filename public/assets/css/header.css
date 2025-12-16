@@ -1,3 +1,4 @@
+/* Archivo: public/assets/css/header.css — Propósito: estilos del header (layout, botones, barra de nivel). */
 /* ============================================================
    BTS ECHO — HEADER (ARMY MODE READY)
    Diseño original 100% respetado — Solo colores dinámicos
@@ -12,6 +13,8 @@
   flex-direction: column;
   gap: 10px;
   padding: 16px 32px;
+  position: relative;
+  z-index: 50;
 }
 
 /* =====================
@@ -43,6 +46,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 55;
 }
 
 /* NAV SE MANTIENE */
@@ -55,6 +60,8 @@
 .header-actions {
   display: flex;
   gap: 12px;
+  position: relative;
+  z-index: 60;
 }
 
 /* UTILIDAD */
@@ -119,6 +126,10 @@
     padding: 8px 16px;
     border-radius: 20px;
     cursor: pointer;
+
+  position: relative;
+  z-index: 70;
+  pointer-events: auto;
 
     background: rgba(var(--white-rgb), 0.15);
     border: 2px solid rgba(var(--white-rgb), 0.85);

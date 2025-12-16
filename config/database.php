@@ -1,4 +1,5 @@
 <?php
+// Archivo: config/database.php — Propósito: crea $pdo (PDO MySQL) usando env vars para que las APIs accedan a la DB.
 $host = getenv("DB_HOST") ?: "127.0.0.1";
 $db   = getenv("DB_NAME") ?: "btsecho";
 $user = getenv("DB_USER") ?: "admin";

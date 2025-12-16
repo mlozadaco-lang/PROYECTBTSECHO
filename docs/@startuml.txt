@@ -1,4 +1,5 @@
 @startuml
+' Archivo: docs/@startuml.txt — Propósito: diagrama relacional (PlantUML) del modelo de datos.
 hide circle
 skinparam linetype ortho
 skinparam entity {

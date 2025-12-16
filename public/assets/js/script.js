@@ -1,35 +1,66 @@
+// Archivo: public/assets/js/script.js — Propósito: lógica principal del Portal (personajes, audio hover, burbuja Spotify embed y navegación).
 let hoverAudioBlocked = false;
 let currentAudio = null;
 
-function getPersistedTopPlayerVolume() {
+const byId = (id) => document.getElementById(id);
+
+function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+}
+
+function safeJsonParse(raw) {
     try {
-        const raw = localStorage.getItem("btsecho.topPlayer.state");
-        const st = raw ? JSON.parse(raw) : null;
-        const v = st && typeof st.volume === "number" ? st.volume : null;
-        return (typeof v === "number") ? Math.max(0, Math.min(1, v)) : null;
+        return JSON.parse(raw);
     } catch {
         return null;
     }
 }
 
-function openSpotifyBubble(spotifyUrl) {
-    const bubble = document.getElementById("playerBubble");
-    const frame = document.getElementById("spotifyFrame");
-    if (!bubble || !frame || !spotifyUrl) return;
+function getPersistedTopPlayerVolume() {
+    const raw = localStorage.getItem("btsecho.topPlayer.state");
+    const st = raw ? safeJsonParse(raw) : null;
+    const v = st && typeof st.volume === "number" ? st.volume : null;
+    return (typeof v === "number") ? clamp(v, 0, 1) : null;
+}
 
-    const parts = String(spotifyUrl).split("/track/");
-    const trackId = parts.length > 1 ? String(parts[1]).split("?")[0] : "";
-    if (!trackId) return;
+function getSpotifyTrackIdFromUrl(spotifyUrl) {
+    const parts = String(spotifyUrl || "").split("/track/");
+    return parts.length > 1 ? String(parts[1]).split("?")[0] : "";
+}
+
+function setSpotifyBubbleOpen(spotifyTrackId) {
+    const bubble = byId("playerBubble");
+    const frame = byId("spotifyFrame");
+    if (!bubble || !frame || !spotifyTrackId) return;
 
     hoverAudioBlocked = true;
-    frame.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0`;
+    frame.src = `https://open.spotify.com/embed/track/${spotifyTrackId}?utm_source=generator&theme=0`;
     bubble.classList.remove("hidden");
 }
 
-document.querySelectorAll(".char-btn").forEach((btn, i) => {
-    const data = (typeof members !== "undefined" && Array.isArray(members)) ? members[i] : null;
-    if (!data) return;
+function setSpotifyBubbleClosed() {
+    const bubble = byId("playerBubble");
+    const frame = byId("spotifyFrame");
+    if (frame) frame.src = "";
+    if (bubble) bubble.classList.add("hidden");
+    hoverAudioBlocked = false;
+}
 
+function openSpotifyBubble(spotifyUrl) {
+    if (!spotifyUrl) return;
+    const trackId = getSpotifyTrackIdFromUrl(spotifyUrl);
+    if (!trackId) return;
+    setSpotifyBubbleOpen(trackId);
+}
+
+function stopCurrentHoverAudio(newAudio) {
+    if (currentAudio && currentAudio !== newAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+    }
+}
+
+function wireCharacterButton(btn, index, data) {
     const audio = new Audio(data.mp3);
     const persistedVolume = getPersistedTopPlayerVolume();
     if (persistedVolume != null) audio.volume = persistedVolume;
@@ -55,10 +86,7 @@ document.querySelectorAll(".char-btn").forEach((btn, i) => {
         if (window.btsEchoTopPlayer && typeof window.btsEchoTopPlayer.isPlaying === "function" && window.btsEchoTopPlayer.isPlaying()) return;
         if (hoverAudioBlocked) return;
 
-        if (currentAudio && currentAudio !== audio) {
-            currentAudio.pause();
-            currentAudio.currentTime = 0;
-        }
+        stopCurrentHoverAudio(audio);
 
         audio.currentTime = 0;
         audio.play();
@@ -67,7 +95,7 @@ document.querySelectorAll(".char-btn").forEach((btn, i) => {
 
     btn.addEventListener("click", () => {
         if (window.btsEchoTopPlayer && typeof window.btsEchoTopPlayer.loadAndPlay === "function") {
-            window.btsEchoTopPlayer.loadAndPlay(i);
+            window.btsEchoTopPlayer.loadAndPlay(index);
         }
     });
 
@@ -90,16 +118,23 @@ document.querySelectorAll(".char-btn").forEach((btn, i) => {
             window.open(data.youtube, "_blank");
         });
     }
-});
+}
+
+function wireCharacters() {
+    const list = (typeof members !== "undefined" && Array.isArray(members)) ? members : [];
+    document.querySelectorAll(".char-btn").forEach((btn, i) => {
+        const data = list[i];
+        if (!data) return;
+        wireCharacterButton(btn, i, data);
+    });
+}
+
+wireCharacters();
 
 const closeBubbleBtn = document.getElementById("closeBubble");
 if (closeBubbleBtn) {
     closeBubbleBtn.addEventListener("click", () => {
-        const bubble = document.getElementById("playerBubble");
-        const frame = document.getElementById("spotifyFrame");
-        if (frame) frame.src = "";
-        if (bubble) bubble.classList.add("hidden");
-        hoverAudioBlocked = false;
+        setSpotifyBubbleClosed();
     });
 }
 

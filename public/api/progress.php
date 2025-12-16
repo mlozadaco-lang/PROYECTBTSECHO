@@ -1,4 +1,5 @@
 <?php
+// Archivo: public/api/progress.php — Propósito: devolver progreso del usuario (nivel/XP) y asegurar fila en user_progress.
 /**
  * Endpoint: GET /api/progress.php
  *
@@ -11,6 +12,8 @@ require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
 require_once __DIR__ . "/../../config/database.php";
+
+api_require_method('GET');
 
 $userId = api_require_login("Debes iniciar sesión.");
 

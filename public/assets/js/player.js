@@ -1,3 +1,4 @@
+// Archivo: public/assets/js/player.js — Propósito: reproductor superior de audio local (Prev/Play/Next/Seek/Vol) + persistencia en localStorage.
 /* ============================================================
    BTS Echo — Reproductor superior (audio local)
    - Play/Pause, Prev/Next, Seek, Volumen
@@ -6,17 +7,19 @@
 ============================================================ */
 
 (function () {
-    const audio = document.getElementById("tmpAudio");
-    const titleEl = document.getElementById("tmpTitle");
-    const metaEl = document.getElementById("tmpMeta");
+    const byId = (id) => document.getElementById(id);
 
-    const btnPrev = document.getElementById("tmpPrev");
-    const btnPlay = document.getElementById("tmpPlay");
-    const btnNext = document.getElementById("tmpNext");
+    const audio = byId("tmpAudio");
+    const titleEl = byId("tmpTitle");
+    const metaEl = byId("tmpMeta");
 
-    const seek = document.getElementById("tmpSeek");
-    const vol = document.getElementById("tmpVolume");
-    const timeEl = document.getElementById("tmpTime");
+    const btnPrev = byId("tmpPrev");
+    const btnPlay = byId("tmpPlay");
+    const btnNext = byId("tmpNext");
+
+    const seek = byId("tmpSeek");
+    const vol = byId("tmpVolume");
+    const timeEl = byId("tmpTime");
 
     if (!audio || !titleEl || !metaEl || !btnPlay || !seek || !vol || !timeEl) {
         return;
@@ -24,7 +27,7 @@
 
     const STORAGE_KEY = "btsecho.topPlayer.state";
 
-    function safeJsonParse(raw) {
+    function parseJson(raw) {
         try {
             return JSON.parse(raw);
         } catch {
@@ -43,13 +46,17 @@
         return `${m}:${String(s).padStart(2, "0")}`;
     }
 
-    function getTracks() {
+    function getMembersList() {
         // Reutilizamos members.js como fuente de datos.
         // OJO: `const members = [...]` NO necesariamente existe como `window.members`.
         // En scripts clásicos, `members` es un binding global, pero no una propiedad de window.
-        const list = (Array.isArray(window.members) && window.members.length)
-            ? window.members
-            : (typeof members !== "undefined" && Array.isArray(members) ? members : []);
+        if (Array.isArray(window.members) && window.members.length) return window.members;
+        if (typeof members !== "undefined" && Array.isArray(members)) return members;
+        return [];
+    }
+
+    function getTracks() {
+        const list = getMembersList();
 
         if (!Array.isArray(list) || list.length === 0) return [];
 
@@ -69,9 +76,13 @@
     let lastSavedAt = 0;
     // Nota: el tracking de escuchas locales fue removido.
 
+    function hasTracks() {
+        return Array.isArray(tracks) && tracks.length > 0;
+    }
+
     function loadState() {
         const raw = localStorage.getItem(STORAGE_KEY);
-        const state = safeJsonParse(raw) || {};
+        const state = parseJson(raw) || {};
 
         const volValue = typeof state.volume === "number" ? clamp(state.volume, 0, 1) : 0.8;
         vol.value = String(volValue);
@@ -96,25 +107,19 @@
 
     function stopHoverAudioIfAny() {
         // script.js define currentAudio y hoverAudioBlocked.
+        if (typeof currentAudio === "undefined") return;
+        if (!currentAudio) return;
         try {
-            if (typeof currentAudio !== "undefined" && currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
-                currentAudio = null;
-            }
-        } catch {
-            // ignore
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+        } finally {
+            currentAudio = null;
         }
     }
 
     function setHoverBlocked(value) {
-        try {
-            if (typeof hoverAudioBlocked !== "undefined") {
-                hoverAudioBlocked = !!value;
-            }
-        } catch {
-            // ignore
-        }
+        if (typeof hoverAudioBlocked === "undefined") return;
+        hoverAudioBlocked = !!value;
     }
 
     function updateUi() {
@@ -143,7 +148,7 @@
     }
 
     function loadTrack(index, opts = {}) {
-        if (tracks.length === 0) return;
+        if (!hasTracks()) return;
 
         currentIndex = clamp(index, 0, tracks.length - 1);
         const t = tracks[currentIndex];
@@ -174,7 +179,7 @@
     }
 
     function playPause() {
-        if (tracks.length === 0) return;
+        if (!hasTracks()) return;
 
         if (audio.paused) {
             stopHoverAudioIfAny();
@@ -191,13 +196,13 @@
     }
 
     function prev() {
-        if (tracks.length === 0) return;
+        if (!hasTracks()) return;
         const nextIndex = (currentIndex - 1 + tracks.length) % tracks.length;
         loadTrack(nextIndex, { startTime: 0, autoplay: !audio.paused });
     }
 
     function next() {
-        if (tracks.length === 0) return;
+        if (!hasTracks()) return;
         const nextIndex = (currentIndex + 1) % tracks.length;
         loadTrack(nextIndex, { startTime: 0, autoplay: !audio.paused });
     }
@@ -272,7 +277,7 @@
 
     // Init
     const { savedTime } = loadState();
-    if (tracks.length > 0) {
+    if (hasTracks()) {
         loadTrack(currentIndex, { startTime: savedTime, autoplay: false });
     } else {
         updateUi();

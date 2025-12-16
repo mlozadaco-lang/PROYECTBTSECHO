@@ -1,4 +1,5 @@
 <?php
+// Archivo: public/api/spotify-clicks-top-weekly.php — Propósito: devolver el ranking semanal (7 días) basado en clics almacenados en portal_spotify_clicks.
 /**
  * Endpoint: GET /api/spotify-clicks-top-weekly.php
  *
@@ -9,21 +10,23 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(false);
 
+api_require_method('GET');
+
 require_once __DIR__ . '/_spotify_clicks.php';
 
 // WHY: keep endpoint small; share table bootstrap with spotify-click.php.
 
 require_once __DIR__ . '/../../config/database.php';
 
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
-if ($limit <= 0) $limit = 10;
-if ($limit > 20) $limit = 20;
+$limitRaw = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+$limit = max(1, min(20, $limitRaw > 0 ? $limitRaw : 10));
 
 try {
   ensure_portal_spotify_clicks_table($pdo);
-  $hasContext = portal_spotify_clicks_has_column($pdo, 'context');
   // Avoid a feedback loop: clicks on the "Top semanal (clics)" list should not count toward the ranking.
-  $contextFilter = $hasContext ? " AND (context IS NULL OR context <> 'weekly_clicks')" : '';
+  $contextFilter = portal_spotify_clicks_has_column($pdo, 'context')
+    ? " AND (context IS NULL OR context <> 'weekly_clicks')"
+    : '';
 
   $sql = "
     SELECT

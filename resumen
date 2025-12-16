@@ -1,3 +1,4 @@
+<!-- Archivo: resumen — Propósito: documento de equipo (flujo, arquitectura y decisiones del proyecto). -->
 # Resumen del proyecto — PROYECTBTSECHO (BTS Echo)
 
 Proyecto web con **front estático (HTML/CSS/JS)** servido desde `public/`, y **backend en PHP** (endpoints JSON bajo `public/api/`) con **MySQL** (Docker).
@@ -87,6 +88,32 @@ Además, el compose incluye **MailHog** para que el envío de correos funcione �
 
 - No abrir el proyecto con `file://` si vas a usar `/api/*`. El front hace `fetch('/api/...')` y eso requiere HTTP.
 
+## Flujo actual (end-to-end)
+
+### Portal (`public/index.html`)
+
+- Carga primero el helper `public/assets/js/api.js` (expone `window.BtsEchoApi`).
+- Auth (`public/assets/js/auth.js`):
+  - Al cargar: `GET /api/session.php`.
+  - Si hay sesión: `GET /api/progress.php` para nivel/XP.
+  - Login: `POST /api/login.php`.
+  - Registro: `POST /api/register.php` (crea `user_progress`).
+  - Logout: el front usa `POST /api/logout.php` y recarga (la API también acepta `GET`).
+- Top musical (selector):
+  - “Top semanal (clics)” -> `GET /api/spotify-clicks-top-weekly.php?limit=7`.
+  - “Top BTS en Spotify (actual)” -> `GET /api/spotify-bts-top.php?limit=10&market=XX`.
+  - Click tracking: `public/assets/js/spotify.js` reporta clics a `POST /api/spotify-click.php` (usa `sendBeacon` cuando está disponible).
+
+### Misiones (`public/missions/index.html`)
+
+- Lista: `GET /api/missions.php` (si hay sesión incluye `status/proof/completed_at`).
+- Completar: `POST /api/complete-mission.php` (requiere sesión + `proof`).
+- Progreso: `GET /api/progress.php`.
+
+### Reset password (`public/reset-password.html`)
+
+- Envía `POST /api/reset-password.php` con `{ token, password }`.
+
 ## 3) Páginas (front)
 
 ### `public/index.html` (Portal)
@@ -159,7 +186,7 @@ Todos viven en `public/api/`.
   - Si hay sesión: `{"logged": true, "user": {"name": "...", "email": "..."}}`
   - Si no hay sesión: `{"logged": false}`
 
-### `GET /api/logout.php`
+### `GET o POST /api/logout.php`
 - Acciones:
   - `session_unset()` + `session_destroy()`.
 - Respuesta:
@@ -221,6 +248,10 @@ Todos viven en `public/api/`.
   - `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_PORT` (default `587`)
 - Para uso real, crear `config/mail.php` (ignorado por git).
 
+Variables útiles del flujo actual:
+- `APP_BASE_URL` (opcional): fuerza la URL base para construir el link `.../reset-password.html?token=...`.
+- `APP_DEBUG=1`: agrega `debug` cuando falla SMTP (solo para dev).
+
 ## 6) Base de datos (MySQL)
 
 Definida en `database/init.sql`.
@@ -265,6 +296,9 @@ Archivo: `database/docker-compose.yml`
 - Servicio `mysql` (MySQL 8.0)
   - Expone `3306:3306`
   - Inicializa con `database/init.sql`
+- Servicio `mailhog` (SMTP dev + UI)
+  - UI: `http://localhost:8025/`
+  - SMTP: `mailhog:1025` (dentro de Docker) / `localhost:1025` (desde tu PC)
 - Servicio `web` (PHP 8.2 + Apache)
   - Expone `8000:80`
   - Variables DB apuntan a `DB_HOST=mysql`
@@ -275,11 +309,17 @@ Imagen web: `database/php/Dockerfile`
 - Instala `pdo_mysql`
 - Ajusta DocumentRoot a `/var/www/public`
 
+Nota importante (volumen MySQL): el script `init.sql` solo se ejecuta cuando el volumen está vacío.
+- Si ya existía `mysql_data`, cambios en schema no se aplican solos.
+- Para reiniciar desde cero (BORRA datos): `cd database` -> `docker compose down -v` -> `docker compose up -d --build`.
+
 ## 8) Notas rápidas / troubleshooting
 
 - Si el front muestra errores al llamar `/api/*`, asegúrate de abrir por HTTP (ej. `http://localhost:8000/`).
 - Si el correo no sale:
-  - crea `config/mail.php` con credenciales reales o exporta `SMTP_*`.
+  - En Docker, por defecto se usa MailHog (no requiere credenciales externas).
+  - Para usar SMTP real: configura `SMTP_*` en `database/.env`.
+  - Fuera de Docker (XAMPP/WAMP): puedes crear `config/mail.php` (está en `.gitignore`) o exportar `SMTP_*`.
   - habilita `APP_DEBUG=1` temporalmente para ver mensajes de error controlados.
 - El link de reset de contraseña se arma con la URL base detectada desde la request (host/puerto). Si usas un proxy o cambias puertos, asegúrate de entrar al portal usando la URL final correcta.
 

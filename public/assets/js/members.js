@@ -1,3 +1,4 @@
+// Archivo: public/assets/js/members.js — Propósito: “base de datos” en front con los miembros (img/audio/spotify/youtube) usado por Portal.
 /* ============================================================
    BTS Echo — Database of Members
    Contiene la lista de personajes, sus imágenes, audios locales,

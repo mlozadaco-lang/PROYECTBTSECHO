@@ -1,3 +1,4 @@
+<!-- Archivo: docs/como-leer-el-codigo.md — Propósito: guía para ubicarse rápido en el repo y en el flujo front->API->DB. -->
 # Cómo leer el código (guía rápida)
 
 Esta guía existe para que alguien nuevo del equipo pueda ubicarse en ~10 minutos.

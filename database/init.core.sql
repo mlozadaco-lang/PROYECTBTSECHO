@@ -1,3 +1,4 @@
+-- Archivo: database/init.core.sql — Propósito: esquema mínimo (MVP) con tablas usadas por el código actual.
 -- ===============================
 -- BASE DE DATOS BTS ECHO — ESQUEMA CORE (MVP)
 --

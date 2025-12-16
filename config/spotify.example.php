@@ -1,5 +1,7 @@
 <?php
 
+// Archivo: config/spotify.example.php — Propósito: plantilla de credenciales Spotify (ejemplo sin secretos).
+
 // Example Spotify configuration.
 // Copy to config/spotify.php (which should be gitignored) OR set env vars.
 //

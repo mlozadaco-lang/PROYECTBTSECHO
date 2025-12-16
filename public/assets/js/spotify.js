@@ -1,3 +1,4 @@
+// Archivo: public/assets/js/spotify.js — Propósito: cargar Top BTS desde Spotify (API) y registrar clics a links de Spotify (tracking).
 (function () {
   const api = window.BtsEchoApi;
   const btsListEl = document.getElementById('spotifyBtsTopList');
@@ -16,11 +17,23 @@
       .replaceAll("'", '&#039;');
   }
 
+  function isFileProtocol() {
+    return !!(api?.isFileProtocol && api.isFileProtocol());
+  }
+
+  async function requestJson(url, options) {
+    // WHY: unify JSON parsing/error handling across the project (api.js)
+    if (api?.requestJson) return api.requestJson(url, options);
+
+    const res = await fetch(url, options);
+    const data = await res.json().catch(() => null);
+    return { ok: res.ok, status: res.status, data };
+  }
+
   async function loadBtsTop() {
-    if (!btsListEl) return;
     btsListEl.textContent = 'Cargando Top BTS desde Spotify...';
 
-    if (api?.isFileProtocol && api.isFileProtocol()) {
+    if (isFileProtocol()) {
       btsListEl.textContent = 'Disponible al abrir por http://localhost:8000/';
       return;
     }
@@ -30,10 +43,7 @@
     try {
       const url = `/api/spotify-bts-top.php?limit=10&market=${encodeURIComponent(market)}`;
 
-      // WHY: unify JSON parsing/error handling across the project (api.js)
-      const result = api?.requestJson
-        ? await api.requestJson(url, { credentials: 'include' })
-        : await fetch(url, { credentials: 'include' }).then(async (res) => ({ ok: res.ok, status: res.status, data: await res.json().catch(() => null) }));
+      const result = await requestJson(url, { credentials: 'include' });
 
       const data = result?.data;
       if (!result?.ok || !data || !data.success) {
@@ -62,10 +72,10 @@
               <div class="music-top-meta">${escapeHtml(artists)}</div>
             </div>
             <a class="music-top-link" 
-               data-spotify-url="${escapeAttr(url)}"
-               data-spotify-track-id="${escapeAttr(trackId)}"
-               data-track-name="${escapeAttr(title)}"
-               data-artists="${escapeAttr(artists)}"
+               data-spotify-url="${escapeHtml(url)}"
+               data-spotify-track-id="${escapeHtml(trackId)}"
+               data-track-name="${escapeHtml(title)}"
+               data-artists="${escapeHtml(artists)}"
                data-context="bts_top"
                href="${url}" target="_blank" rel="noreferrer">Abrir</a>
           </div>
@@ -74,10 +84,6 @@
     } catch (e) {
       btsListEl.textContent = 'Error cargando Top BTS.';
     }
-  }
-
-  function escapeAttr(str) {
-    return escapeHtml(str).replaceAll('"', '&quot;');
   }
 
   function reportSpotifyClick(payload) {

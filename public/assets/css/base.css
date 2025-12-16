@@ -1,3 +1,4 @@
+/* Archivo: public/assets/css/base.css — Propósito: variables/tokens globales (Classic/Army Mode). */
 /* ============================================================
    BTS ECHO — BASE (VARIABLES GLOBALES)
    Tema Classic + Army Mode — SIN afectar diseño original
@@ -102,7 +103,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 999;
+    z-index: 5000;
 }
 
 .auth-modal.hidden {
@@ -117,6 +118,12 @@ body {
     text-align: center;
     box-shadow: 0 0 25px rgba(164,139,255,0.4);
     position: relative;
+    z-index: 5001;
+    pointer-events: auto;
+}
+
+.auth-box * {
+    pointer-events: auto;
 }
 
 .auth-box input {

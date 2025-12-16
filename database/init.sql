@@ -1,3 +1,4 @@
+-- Archivo: database/init.sql — Propósito: esquema completo + datos iniciales (incluye tablas futuras).
 -- ===============================
 -- BASE DE DATOS BTS ECHO
 -- Proyección Inicial Completa

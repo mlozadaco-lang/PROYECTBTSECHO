@@ -1,4 +1,5 @@
 <?php
+// Archivo: public/api/_spotify_clicks.php — Propósito: helpers compartidos para asegurar/migrar la tabla portal_spotify_clicks (schema drift safe).
 
 /**
  * BTS Echo — Spotify clicks helpers (shared)
@@ -10,8 +11,15 @@
 
 declare(strict_types=1);
 
+function portal_spotify_clicks_has_column(PDO $pdo, string $column): bool {
+  $stmt = $pdo->prepare("SHOW COLUMNS FROM portal_spotify_clicks LIKE ?");
+  $stmt->execute([$column]);
+  $row = $stmt->fetch(PDO::FETCH_ASSOC);
+  return is_array($row) && !empty($row);
+}
+
 function ensure_portal_spotify_clicks_table(PDO $pdo): void {
-  $sql = "
+  $pdo->exec("
     CREATE TABLE IF NOT EXISTS portal_spotify_clicks (
       id BIGINT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NULL,
@@ -26,24 +34,10 @@ function ensure_portal_spotify_clicks_table(PDO $pdo): void {
       INDEX idx_portal_spotify_clicks_track_id (spotify_track_id),
       INDEX idx_portal_spotify_clicks_user_id (user_id)
     );
-  ";
-  $pdo->exec($sql);
+  ");
 
   // If table existed from an older schema, add missing columns.
-  $cols = $pdo->query("SHOW COLUMNS FROM portal_spotify_clicks")->fetchAll(PDO::FETCH_ASSOC);
-  $names = [];
-  foreach ($cols as $c) {
-    if (isset($c['Field'])) $names[strtolower((string)$c['Field'])] = true;
-  }
-
-  if (!isset($names['context'])) {
+  if (!portal_spotify_clicks_has_column($pdo, 'context')) {
     $pdo->exec("ALTER TABLE portal_spotify_clicks ADD COLUMN context VARCHAR(60) NULL");
   }
-}
-
-function portal_spotify_clicks_has_column(PDO $pdo, string $column): bool {
-  $stmt = $pdo->prepare("SHOW COLUMNS FROM portal_spotify_clicks LIKE ?");
-  $stmt->execute([$column]);
-  $row = $stmt->fetch(PDO::FETCH_ASSOC);
-  return is_array($row) && !empty($row);
 }

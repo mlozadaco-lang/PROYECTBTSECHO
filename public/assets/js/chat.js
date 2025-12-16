@@ -1,3 +1,4 @@
+// Archivo: public/assets/js/chat.js — Propósito: chat flotante simulado (UI local; no persiste en backend).
 const chatToggleBtn = document.getElementById("chatToggle");
 const communityChat = document.getElementById("communityChat");
 const closeChatBtn = document.getElementById("closeChat");

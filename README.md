@@ -1,3 +1,4 @@
+<!-- Archivo: README.md — Propósito: guía rápida (setup, endpoints, arquitectura y troubleshooting). -->
 # PROYECTBTSECHO
 
 Proyecto web (Front estático) + APIs en PHP + MySQL (Docker).
@@ -63,7 +64,7 @@ La idea general: **Front estático** (HTML/CSS/JS) consume **APIs PHP** en `publ
   - Top BTS actual (Spotify real, sin login) + tracking de clics: `public/assets/js/spotify.js`
     - Consume: `GET /api/spotify-bts-top.php`, `POST /api/spotify-click.php`
   - Login/registro/logout + header: `public/assets/js/auth.js`
-    - Consume: `POST /api/login.php`, `POST /api/register.php`, `POST /api/logout.php`, `GET /api/session.php`
+    - Consume: `POST /api/login.php`, `POST /api/register.php`, `POST /api/logout.php` (recomendado; la API también acepta `GET`), `GET /api/session.php`
   - Army Mode (tema) + autocompletar misión: `public/assets/js/theme.js`
     - Consume: `GET /api/session.php`, `GET /api/missions.php`, `POST /api/complete-mission.php`, `GET /api/progress.php`
   - Chat (simulado, sin backend): `public/assets/js/chat.js`
@@ -81,6 +82,33 @@ La idea general: **Front estático** (HTML/CSS/JS) consume **APIs PHP** en `publ
 
 Notas:
 - Spotify OAuth (Top personal) y el tracking de “escuchas locales” ya no se usan (fueron removidos para reducir fricción y código).
+
+## Flujo actual (end-to-end)
+
+Portal (`public/index.html`):
+- Helpers: `public/assets/js/api.js` expone `window.BtsEchoApi` para `fetch + JSON` consistente.
+- Auth:
+  - `public/assets/js/auth.js` valida sesión con `GET /api/session.php`.
+  - Si hay sesión, carga progreso con `GET /api/progress.php` para mostrar nivel/XP.
+  - Login: `POST /api/login.php`.
+  - Registro: `POST /api/register.php` (crea también `user_progress`).
+  - Logout: el front usa `POST /api/logout.php` y recarga la página.
+- Música:
+  - Reproductor superior (audio local): `public/assets/js/player.js` (estado en localStorage).
+  - “Top musical” tiene 2 vistas:
+    - Top semanal (clics): `GET /api/spotify-clicks-top-weekly.php?limit=7`.
+    - Top BTS (Spotify real): `GET /api/spotify-bts-top.php?limit=10&market=XX`.
+  - Tracking de clics: al abrir un link de Spotify, `public/assets/js/spotify.js` manda `POST /api/spotify-click.php` (usa `sendBeacon` si existe).
+
+Misiones (`public/missions/index.html`):
+- Carga misiones con `GET /api/missions.php` (si hay sesión incluye `status/proof/completed_at`).
+- Completar misión: `POST /api/complete-mission.php` (requiere sesión y `proof`).
+- Progreso/XP para UI: `GET /api/progress.php`.
+
+Reset password (`public/reset-password.html`):
+- Lee `?token=...` y envía `POST /api/reset-password.php`.
+
+Nota importante: si abres con `file://`, no funciona `/api/*` (el front muestra mensajes para abrir por `http://localhost:8000/`).
 
 ## Estructura
 
@@ -120,7 +148,8 @@ Los endpoints están en `public/api/` y se consumen desde el front con `fetch('/
 
 Principales:
 
-- Auth/sesión: `POST /api/login.php`, `POST /api/register.php`, `POST /api/logout.php`, `GET /api/session.php`
+- Auth/sesión: `POST /api/login.php`, `POST /api/register.php`, `POST /api/logout.php` (o `GET`), `GET /api/session.php`
+- Nota: `logout.php` acepta `GET` o `POST` (el front usa `POST`).
 - Misiones: `GET /api/missions.php`, `POST /api/complete-mission.php`
 - Progreso: `GET /api/progress.php`
 - Reset password: `POST /api/reset-password.php`, `POST /api/forgot-password.php`
@@ -239,6 +268,7 @@ Opcionales (útiles en Docker/MailHog o si tu SMTP lo requiere):
 - `SMTP_AUTH` (`0`/`1`)
 - `SMTP_SECURE` (`none`/`tls`/`ssl`)
 - `MAIL_FROM`
+- `APP_BASE_URL` (opcional): fuerza la URL base usada para armar el link de reset (ej. `http://localhost:8000`).
 
 Debug opcional:
 - Si quieres ver detalles del error SMTP en la respuesta JSON, define `APP_DEBUG=1`.
@@ -313,6 +343,25 @@ Nota: se removieron endpoints de diagnóstico (config/token check) para reducir 
 ## Datos de ejemplo
 
 El archivo `database/init.sql` incluye misiones de ejemplo para que `GET /api/missions.php` devuelva datos y la página de Misiones pueda mostrarlos.
+
+## Base de datos: init.sql vs init.core.sql vs init.full.sql
+
+En `database/` hay 3 entradas relevantes:
+- `init.sql`: esquema completo (incluye tablas “para después”) + datos iniciales.
+- `init.full.sql`: copia/alternativa del esquema completo (referencia).
+- `init.core.sql`: esquema mínimo (MVP) con solo lo que el código usa hoy.
+
+En Docker, `database/docker-compose.yml` monta **por defecto** `./init.sql` en `/docker-entrypoint-initdb.d/init.sql`.
+
+Importante: MySQL solo ejecuta `/docker-entrypoint-initdb.d/*.sql` cuando el volumen está vacío.
+- Si ya existe el volumen `mysql_data`, cambios en `init.sql` no se aplican automáticamente.
+- Para reiniciar desde cero (BORRA datos):
+
+```bash
+cd database
+docker compose down -v
+docker compose up -d --build
+```
 
 ## Migración rápida (si tu BD ya existía)
 

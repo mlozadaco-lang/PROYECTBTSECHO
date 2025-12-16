@@ -1,3 +1,4 @@
+// Archivo: public/assets/js/reset-password.js — Propósito: página de restablecer contraseña (lee token, valida contraseña y llama /api/reset-password.php).
 document.addEventListener("DOMContentLoaded", function() {
     const form = document.getElementById("resetForm");
     const messageDiv = document.getElementById("resetMessage");

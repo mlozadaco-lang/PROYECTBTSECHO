@@ -1,3 +1,4 @@
+# Archivo: database/docker-compose.yml — Propósito: MySQL + web (PHP/Apache) + MailHog para desarrollo local.
 name: db-btsecho
 
 services:

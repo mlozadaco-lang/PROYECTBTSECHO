@@ -1,3 +1,4 @@
+-- Archivo: database/init.full.sql — Propósito: esquema completo (referencia/copia del full).
 -- ===============================
 -- BASE DE DATOS BTS ECHO
 -- Proyección Inicial Completa

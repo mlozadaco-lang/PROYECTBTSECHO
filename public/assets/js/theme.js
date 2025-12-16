@@ -1,3 +1,4 @@
+// Archivo: public/assets/js/theme.js — Propósito: toggle “Army Mode” (tema) y autocompletar misión asociada si el usuario está logueado.
 /* ============================================================
    BTS Echo — MODE SWITCH (ARMY MODE)
    Controla el cambio de tema visual entre el modo clásico

@@ -1,3 +1,4 @@
+// Archivo: public/assets/js/api.js — Propósito: helper compartido para requests JSON (fetch + headers + parse) expuesto como window.BtsEchoApi.
 /*
   BTS Echo — API helper (shared)
 
@@ -26,9 +27,26 @@
   }
 
   async function requestJson(url, opts) {
+    const abs = new URL(url, location.href);
+    const isApiCall = abs.origin === location.origin && abs.pathname.startsWith("/api/");
+    const token = isApiCall
+      ? (window.__BtsEchoAuthToken || localStorage.getItem("btsecho_auth_token"))
+      : null;
+
+    const mergedHeaders = {
+      ...(opts && opts.headers ? opts.headers : {}),
+      Accept: "application/json",
+    };
+
+    if (isApiCall && token && !mergedHeaders.Authorization) {
+      mergedHeaders.Authorization = `Bearer ${token}`;
+    }
+
     const res = await fetch(url, {
-      headers: { Accept: "application/json", ...(opts && opts.headers ? opts.headers : {}) },
-      ...opts,
+      ...(opts || {}),
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: mergedHeaders,
     });
 
     const parsed = await readJsonSafe(res);

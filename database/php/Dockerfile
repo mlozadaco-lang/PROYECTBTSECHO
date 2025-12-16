@@ -1,3 +1,4 @@
+# Archivo: database/php/Dockerfile — Propósito: imagen web (PHP+Apache) con pdo_mysql y DocumentRoot /var/www/public.
 FROM php:8.2-apache
 
 # Enable Apache modules often needed for apps

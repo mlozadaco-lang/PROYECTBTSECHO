@@ -1,5 +1,7 @@
+// Archivo: public/assets/js/missions.js — Propósito: lógica de la página Misiones (cargar misiones desde API, completar misión y refrescar progreso).
 // WHY: use shared helper (api.js) to avoid duplicating fetch helpers across files.
-const IS_FILE = window.BtsEchoApi?.isFileProtocol ? window.BtsEchoApi.isFileProtocol() : (location.protocol === "file:");
+const API = window.BtsEchoApi;
+const IS_FILE = API?.isFileProtocol ? API.isFileProtocol() : (location.protocol === "file:");
 
 function wireStaticButtons() {
     const actions = {
@@ -29,7 +31,7 @@ function escapeHtml(value) {
 async function fetchJson(url, options) {
     // WHY: keep local wrapper name so the rest of the file stays readable,
     // but delegate implementation to the shared helper.
-    if (window.BtsEchoApi?.requestJson) return window.BtsEchoApi.requestJson(url, options);
+    if (API?.requestJson) return API.requestJson(url, options);
     // Fallback (should be rare): minimal behavior if api.js wasn't loaded.
     try {
         const res = await fetch(url, options);
@@ -40,20 +42,28 @@ async function fetchJson(url, options) {
     }
 }
 
+function byId(id) {
+    return document.getElementById(id);
+}
+
+async function apiGet(url) {
+    return fetchJson(url, { headers: { "Accept": "application/json" } });
+}
+
 async function getSession() {
-    const r = await fetchJson("/api/session.php", { headers: { "Accept": "application/json" } });
+    const r = await apiGet("/api/session.php");
     return r.data || { logged: false };
 }
 
 async function getProgress() {
-    const r = await fetchJson("/api/progress.php", { headers: { "Accept": "application/json" } });
+    const r = await apiGet("/api/progress.php");
     return (r.data && r.data.success && r.data.progress) ? r.data.progress : null;
 }
 
 async function renderMissionHeaderProgress() {
-    const el = document.getElementById("missionProgress");
-    const bar = document.getElementById("missionLevelBar");
-    const fill = document.getElementById("missionLevelBarFill");
+    const el = byId("missionProgress");
+    const bar = byId("missionLevelBar");
+    const fill = byId("missionLevelBarFill");
     if (!el) return;
 
     if (IS_FILE) {
@@ -119,6 +129,99 @@ function actionLabelFor(titleLower) {
     return "Marcar como completada";
 }
 
+function setCardCompleted(card, btn, proofInput, proof) {
+    btn.disabled = true;
+    btn.textContent = "Completada";
+
+    const statusLine = card.querySelector(".mission-status-value");
+    if (statusLine) statusLine.textContent = "Completada";
+
+    // Mostramos la prueba que se guardó
+    if (proofInput) {
+        const proofDisplay = document.createElement("p");
+        proofDisplay.className = "mission-proof-display";
+        const strong = document.createElement("strong");
+        strong.textContent = "Prueba:";
+        proofDisplay.appendChild(strong);
+        proofDisplay.appendChild(document.createTextNode(" "));
+        proofDisplay.appendChild(document.createTextNode(proof));
+        proofInput.replaceWith(proofDisplay);
+    }
+}
+
+async function handleMissionClick({ card, btn, mission, isLogged }) {
+    if (!isLogged) {
+        alert("Debes iniciar sesión para completar misiones.");
+        return;
+    }
+
+    const titleLower = String(mission.title || "").toLowerCase();
+
+    // Misión automática (dentro del sitio): se completa al activar Army Mode en el portal.
+    if (isArmyModeMission(titleLower)) {
+        window.location.href = "../index.html";
+        return;
+    }
+
+    // Anti-trampa (MVP): prueba obligatoria, pero simple (textarea)
+    const proofInput = card.querySelector(".mission-proof");
+    const proof = (proofInput?.value || "").trim();
+    if (proof.length < 5) {
+        alert("Necesitas escribir una prueba (mínimo 5 caracteres).");
+        return;
+    }
+
+    const result = await completeMission(Number(mission.id), proof);
+    if (result.ok && result.data?.success) {
+        setCardCompleted(card, btn, proofInput, proof);
+    } else {
+        alert(result.data?.message || "No se pudo completar la misión.");
+    }
+}
+
+function createMissionCard(mission, isLogged) {
+    const card = document.createElement("article");
+    card.className = "mission-card";
+
+    const status = (mission.status || "pending").toLowerCase();
+    const isCompleted = status === "completed";
+
+    const title = String(mission.title || "");
+    const titleLower = title.toLowerCase();
+    const proofText = (mission.proof == null) ? "" : String(mission.proof);
+
+    // Botón: que sea “la acción real” dentro del sitio.
+    // - streaming: sigue siendo manual (no podemos validar Spotify/YouTube real sin APIs).
+    // - mensaje/recuerdo: al enviar/guardar, se completa automáticamente porque esa es la acción.
+    const actionLabel = actionLabelFor(titleLower);
+    const isArmy = isArmyModeMission(titleLower);
+    const proofPlaceholder = proofPlaceholderFor(titleLower);
+
+    card.innerHTML = `
+        <h2>${escapeHtml(mission.title || "Misión")}</h2>
+        <p>${escapeHtml(mission.description || "")}</p>
+        <p class="mission-status" style="margin: 8px 0; opacity: 0.85;">Estado: <strong class="mission-status-value">${isCompleted ? "Completada" : "Pendiente"}</strong></p>
+        ${isCompleted
+            ? (proofText ? `<p class="mission-proof-display"><strong>Prueba:</strong> ${escapeHtml(proofText)}</p>` : "")
+            : (isArmy ? "" : `
+                <textarea class="mission-proof" rows="3" placeholder="${escapeHtml(proofPlaceholder)}"></textarea>
+            `)
+        }
+        <button class="mission-btn" data-id="${mission.id}">${isCompleted ? "Completada" : escapeHtml(actionLabel)}</button>
+    `;
+
+    const btn = card.querySelector(".mission-btn");
+    if (isCompleted) {
+        btn.disabled = true;
+    } else {
+        btn.addEventListener("click", async () => {
+            await handleMissionClick({ card, btn, mission, isLogged });
+        });
+    }
+
+    return card;
+}
+
 async function loadMissionsFromApi() {
     const grid = document.querySelector(".mission-grid");
     if (!grid) return;
@@ -129,99 +232,19 @@ async function loadMissionsFromApi() {
     }
 
     try {
-        const session = await getSession();
+        const [session, missionsRes] = await Promise.all([
+            getSession(),
+            apiGet("/api/missions.php"),
+        ]);
+
         const isLogged = !!session?.logged;
+        const data = missionsRes.data;
 
-        const r = await fetchJson("/api/missions.php", { headers: { "Accept": "application/json" } });
-        const data = r.data;
-
-        if (!data.success || !Array.isArray(data.missions) || data.missions.length === 0) {
-            return;
-        }
+        if (!data?.success || !Array.isArray(data.missions) || data.missions.length === 0) return;
 
         grid.innerHTML = "";
-        data.missions.forEach((m) => {
-            const card = document.createElement("article");
-            card.className = "mission-card";
-
-            const status = (m.status || "pending").toLowerCase();
-            const isCompleted = status === "completed";
-
-            const title = String(m.title || "");
-            const titleLower = title.toLowerCase();
-            const proofPlaceholder = proofPlaceholderFor(titleLower);
-
-            const proofText = (m.proof == null) ? "" : String(m.proof);
-
-            // Botón: que sea “la acción real” dentro del sitio.
-            // - streaming: sigue siendo manual (no podemos validar Spotify/YouTube real sin APIs).
-            // - mensaje/recuerdo: al enviar/guardar, se completa automáticamente porque esa es la acción.
-            const actionLabel = actionLabelFor(titleLower);
-            const isArmy = isArmyModeMission(titleLower);
-
-            card.innerHTML = `
-                <h2>${escapeHtml(m.title || "Misión")}</h2>
-                <p>${escapeHtml(m.description || "")}</p>
-                <p class="mission-status" style="margin: 8px 0; opacity: 0.85;">Estado: <strong class="mission-status-value">${isCompleted ? "Completada" : "Pendiente"}</strong></p>
-                ${isCompleted
-                    ? (proofText ? `<p class="mission-proof-display"><strong>Prueba:</strong> ${escapeHtml(proofText)}</p>` : "")
-                    : (isArmy ? "" : `
-                        <textarea class="mission-proof" rows="3" placeholder="${escapeHtml(proofPlaceholder)}"></textarea>
-                    `)
-                }
-                <button class="mission-btn" data-id="${m.id}">${isCompleted ? "Completada" : escapeHtml(actionLabel)}</button>
-            `;
-
-            const btn = card.querySelector(".mission-btn");
-            if (isCompleted) {
-                btn.disabled = true;
-            } else {
-                btn.addEventListener("click", async () => {
-                    if (!isLogged) {
-                        alert("Debes iniciar sesión para completar misiones.");
-                        return;
-                    }
-
-                    // Misión automática (dentro del sitio): se completa al activar Army Mode en el portal.
-                    if (isArmy) {
-                        window.location.href = "../index.html";
-                        return;
-                    }
-
-                    // Anti-trampa (MVP): prueba obligatoria, pero simple (textarea)
-                    const proofInput = card.querySelector(".mission-proof");
-                    const proof = (proofInput?.value || "").trim();
-                    if (proof.length < 5) {
-                        alert("Necesitas escribir una prueba (mínimo 5 caracteres).");
-                        return;
-                    }
-
-                    const result = await completeMission(Number(m.id), proof);
-                    if (result.ok && result.data?.success) {
-                        btn.disabled = true;
-                        btn.textContent = "Completada";
-
-                        const statusLine = card.querySelector(".mission-status-value");
-                        if (statusLine) statusLine.textContent = "Completada";
-
-                        // Mostramos la prueba que se guardó
-                        if (proofInput) {
-                            const proofDisplay = document.createElement("p");
-                            proofDisplay.className = "mission-proof-display";
-                            const strong = document.createElement("strong");
-                            strong.textContent = "Prueba:";
-                            proofDisplay.appendChild(strong);
-                            proofDisplay.appendChild(document.createTextNode(" "));
-                            proofDisplay.appendChild(document.createTextNode(proof));
-                            proofInput.replaceWith(proofDisplay);
-                        }
-                    } else {
-                        alert(result.data?.message || "No se pudo completar la misión.");
-                    }
-                });
-            }
-
-            grid.appendChild(card);
+        data.missions.forEach((mission) => {
+            grid.appendChild(createMissionCard(mission, isLogged));
         });
     } catch {
         // Si falla el backend, dejamos el contenido estático
