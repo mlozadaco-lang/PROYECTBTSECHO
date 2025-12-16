@@ -225,23 +225,26 @@ Todos viven en `public/api/`.
 
 Definida en `database/init.sql`.
 
+Nota: el `init.sql` actual es el **esquema core (MVP)**: crea solo lo que el código usa hoy.
+La versión completa anterior quedó guardada en `database/init.full.sql`.
+
 Tablas principales:
 - Auth:
   - `users` (id, name, email unique, password_hash, created_at)
   - `password_resets` (user_id, reset_token, expires_at, used, created_at)
-- Roles y progreso:
-  - `roles`, `user_roles`, `user_progress`
-- Catálogo musical:
-  - `artists`, `albums`, `songs`, `playlists`, `playlist_songs`
-- Gamificación:
-  - `missions`, `user_missions`, `achievements`, `user_achievements`, `collectibles`, `user_collectibles`
-- Narrativa:
-  - `story_nodes`, `user_story_progress`
+- Progreso:
+  - `user_progress`
+- Gamificación (MVP):
+  - `missions`, `user_missions`
+- Spotify (portal):
+  - `portal_spotify_clicks`
 
 Datos iniciales:
-- Roles: `ADMIN`, `USER`
-- Artista inicial: `BTS`
 - Misiones: 3 misiones de ejemplo (para que Misiones cargue data)
+
+Limpieza de tablas no usadas (si tu BD ya estaba creada con el esquema completo):
+- Script manual: `database/cleanup.sql`
+- Importante: borra tablas y datos, úsalo solo si confirmas que no las necesitas.
 
 Notas de progreso real:
 - `user_missions` guarda el progreso por usuario. La PK es compuesta (`user_id`, `mission_id`).
