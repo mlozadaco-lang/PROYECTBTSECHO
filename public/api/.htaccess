@@ -1,0 +1,13 @@
+# Archivo: public/api/.htaccess — Propósito: router opcional para /api/* (sin .php)
+# Mantiene compatibilidad: si existe el archivo .php se sirve directo.
+
+RewriteEngine On
+RewriteBase /api/
+
+# Si el archivo o carpeta existe, no reescribir
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Todo lo demás va al router
+RewriteRule ^ index.php [L]

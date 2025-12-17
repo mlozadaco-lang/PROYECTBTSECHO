@@ -63,9 +63,9 @@
         return list
             .map((m, idx) => ({
                 index: idx,
-                name: String(m?.name || "Pista"),
-                track: String(m?.track || ""),
-                src: String(m?.mp3 || ""),
+                name: String((m && m.name) ? m.name : "Pista"),
+                track: String((m && m.track) ? m.track : ""),
+                src: String((m && m.mp3) ? m.mp3 : ""),
             }))
             .filter(t => !!t.src);
     }

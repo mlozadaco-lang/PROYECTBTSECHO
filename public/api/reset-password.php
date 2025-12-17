@@ -3,23 +3,22 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(false);
 
+require_once __DIR__ . '/_db.php';
+
 // WHY: shared helpers keep responses consistent and reduce boilerplate.
 
 // conexión DB
-require_once __DIR__ . "/../../config/database.php";
+$pdo = api_db();
 
 api_require_method('POST');
 
 // leer JSON
 $data = api_read_json_body();
 
-$token   = trim($data["token"] ?? "");
-$newPass = trim($data["password"] ?? "");
+api_require_fields($data, ['token', 'password'], 'Token o contraseña faltante');
 
-// validar entrada
-if (empty($token) || empty($newPass)) {
-    api_fail(400, "Token o contraseña faltante");
-}
+$token   = trim((string)($data["token"] ?? ""));
+$newPass = trim((string)($data["password"] ?? ""));
 
 if (mb_strlen($newPass) < 8) {
     api_fail(400, "La contraseña debe tener mínimo 8 caracteres");
@@ -69,5 +68,5 @@ try {
     ]);
 
 } catch (Exception $e) {
-    api_fail(500, "Error interno del servidor");
+    api_fail_exception($e, 500, 'Error interno del servidor');
 }

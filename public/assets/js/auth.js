@@ -19,11 +19,11 @@ window.__BtsEchoAuthWired = true;
 const api = window.BtsEchoApi;
 
 function isFileProtocol() {
-    return api?.isFileProtocol ? api.isFileProtocol() : (location.protocol === "file:");
+    return (api && api.isFileProtocol) ? api.isFileProtocol() : (location.protocol === "file:");
 }
 
 async function requestJson(url, opts) {
-    if (api?.requestJson) return api.requestJson(url, opts);
+    if (api && api.requestJson) return api.requestJson(url, opts);
 
     const mergedHeaders = {
         ...(opts && opts.headers ? opts.headers : {}),
@@ -58,7 +58,7 @@ function setText(el, value) {
 
 function requireHttpForApi(message) {
     // WHY: multiple auth actions call /api/*; centralize file:// guard.
-    if (api?.assertHttp) {
+    if (api && api.assertHttp) {
         api.assertHttp(message);
         return;
     }
@@ -74,7 +74,7 @@ function fileProtocolMessageFor(endpoint) {
 async function postJson(url, payload, fileProtocolErrorMessage) {
     // WHY: delegate to api.js for consistent headers + JSON parsing.
     requireHttpForApi(fileProtocolErrorMessage);
-    if (api?.postJson) return api.postJson(url, payload);
+    if (api && api.postJson) return api.postJson(url, payload);
 
     // Fallback: minimal behavior if api.js wasn't loaded.
     const res = await fetch(url, {
@@ -125,8 +125,8 @@ async function getProgress() {
     if (isFileProtocol()) return null;
     try {
         const result = await requestJson("/api/progress.php");
-        const data = result?.data;
-        if (data?.success && data?.progress) return data.progress;
+        const data = result && result.data ? result.data : null;
+        if (data && data.success && data.progress) return data.progress;
     } catch {
         // ignore
     }
@@ -141,9 +141,9 @@ async function refreshHeaderUser() {
 
     try {
         const result = await requestJson("/api/session.php");
-        const data = result?.data;
+        const data = result && result.data ? result.data : null;
 
-        if (!data?.logged) {
+        if (!data || !data.logged) {
             setHeaderLoggedOut();
             return;
         }
@@ -299,9 +299,9 @@ if (confirmRegister) {
                 fileProtocolMessageFor("/api/register.php")
             );
 
-            setText(registerMsg, result.data?.message);
+            setText(registerMsg, (result && result.data && result.data.message) ? result.data.message : "");
 
-            if (result.data?.success) {
+            if (result && result.data && result.data.success) {
                 setTimeout(() => {
                     hide(registerModal);
                     show(authModal);
@@ -309,7 +309,7 @@ if (confirmRegister) {
             }
 
         } catch (err) {
-            setText(registerMsg, err?.message || "Error al registrar.");
+            setText(registerMsg, (err && err.message) ? err.message : "Error al registrar.");
         }
     });
 }
@@ -354,8 +354,8 @@ if (authLogin) {
                 fileProtocolMessageFor("/api/login.php")
             );
 
-            if (result.data?.success) {
-                const token = result.data?.token ? String(result.data.token) : "";
+            if (result && result.data && result.data.success) {
+                const token = (result.data && result.data.token) ? String(result.data.token) : "";
                 if (token) {
                     window.__BtsEchoAuthToken = token;
                     try { localStorage.setItem("btsecho_auth_token", token); } catch {}
@@ -367,11 +367,11 @@ if (authLogin) {
                 setText(authMsg, "");
                 location.reload();
             } else {
-                setText(authMsg, result.data?.message);
+                setText(authMsg, (result && result.data && result.data.message) ? result.data.message : "No se pudo iniciar sesión.");
             }
 
         } catch (err) {
-            setText(authMsg, err?.message || "No se pudo conectar con el servidor.");
+            setText(authMsg, (err && err.message) ? err.message : "No se pudo conectar con el servidor.");
         }
     });
 }
@@ -386,7 +386,7 @@ if (logoutBtn) {
         try { delete window.__BtsEchoAuthToken; } catch {}
         // WHY: keep logout robust if server returns non-JSON (we don't need response content).
         try {
-            if (api?.requestJson) await api.requestJson("/api/logout.php", { method: "POST" });
+            if (api && api.requestJson) await api.requestJson("/api/logout.php", { method: "POST" });
             else await fetch("/api/logout.php");
         } catch {
             // ignore

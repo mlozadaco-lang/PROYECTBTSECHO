@@ -13,9 +13,12 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
+require_once __DIR__ . '/_db.php';
+
 // WHY: reduce boilerplate (headers/session/body parsing) and keep responses consistent.
 
-require_once __DIR__ . "/../../config/database.php";
+
+$pdo = api_db();
 
 api_require_method('POST');
 
@@ -44,9 +47,13 @@ if (mb_strlen($proof) > 2000) {
 $xpPerLevel = 20;
 
 // WHY: helper to rollback before returning an API error during a transaction.
-$txFail = function(int $status, string $message, array $extra = []) use ($pdo): void {
+$txFail = function(int $status, string $message, array $extra = [], $exception = null) use ($pdo): void {
     if ($pdo->inTransaction()) $pdo->rollBack();
-    api_fail($status, $message, $extra);
+    if ($exception instanceof Throwable) {
+        api_fail_exception($exception, $status, $message, $extra);
+    } else {
+        api_fail($status, $message, $extra);
+    }
 };
 
 try {
@@ -127,6 +134,6 @@ try {
             "xp_per_level" => $xpPerLevel
         ]
     ]);
-} catch (Exception $e) {
-    $txFail(500, "Error interno del servidor");
+} catch (Throwable $e) {
+    $txFail(500, 'Error interno del servidor', ['user_id' => $userId ?? null, 'mission_id' => $missionId ?? null], $e);
 }

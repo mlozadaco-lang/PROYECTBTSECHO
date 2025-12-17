@@ -1,7 +1,7 @@
 // Archivo: public/assets/js/missions.js — Propósito: lógica de la página Misiones (cargar misiones desde API, completar misión y refrescar progreso).
 // WHY: use shared helper (api.js) to avoid duplicating fetch helpers across files.
 const API = window.BtsEchoApi;
-const IS_FILE = API?.isFileProtocol ? API.isFileProtocol() : (location.protocol === "file:");
+const IS_FILE = (API && API.isFileProtocol) ? API.isFileProtocol() : (location.protocol === "file:");
 
 function wireStaticButtons() {
     const actions = {
@@ -31,7 +31,7 @@ function escapeHtml(value) {
 async function fetchJson(url, options) {
     // WHY: keep local wrapper name so the rest of the file stays readable,
     // but delegate implementation to the shared helper.
-    if (API?.requestJson) return API.requestJson(url, options);
+    if (API && API.requestJson) return API.requestJson(url, options);
     // Fallback (should be rare): minimal behavior if api.js wasn't loaded.
     try {
         const res = await fetch(url, options);
@@ -73,7 +73,7 @@ async function renderMissionHeaderProgress() {
     }
 
     const session = await getSession();
-    if (!session?.logged) {
+    if (!session || !session.logged) {
         el.textContent = "";
         if (bar) bar.style.display = "none";
         return;
@@ -165,17 +165,17 @@ async function handleMissionClick({ card, btn, mission, isLogged }) {
 
     // Anti-trampa (MVP): prueba obligatoria, pero simple (textarea)
     const proofInput = card.querySelector(".mission-proof");
-    const proof = (proofInput?.value || "").trim();
+    const proof = ((proofInput && typeof proofInput.value === 'string') ? proofInput.value : "").trim();
     if (proof.length < 5) {
         alert("Necesitas escribir una prueba (mínimo 5 caracteres).");
         return;
     }
 
     const result = await completeMission(Number(mission.id), proof);
-    if (result.ok && result.data?.success) {
+    if (result.ok && result.data && result.data.success) {
         setCardCompleted(card, btn, proofInput, proof);
     } else {
-        alert(result.data?.message || "No se pudo completar la misión.");
+        alert((result.data && result.data.message) ? result.data.message : "No se pudo completar la misión.");
     }
 }
 
@@ -237,10 +237,10 @@ async function loadMissionsFromApi() {
             apiGet("/api/missions.php"),
         ]);
 
-        const isLogged = !!session?.logged;
+        const isLogged = !!(session && session.logged);
         const data = missionsRes.data;
 
-        if (!data?.success || !Array.isArray(data.missions) || data.missions.length === 0) return;
+        if (!data || !data.success || !Array.isArray(data.missions) || data.missions.length === 0) return;
 
         grid.innerHTML = "";
         data.missions.forEach((mission) => {

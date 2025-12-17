@@ -15,7 +15,7 @@ const api = window.BtsEchoApi;
 
 function findArmyModeMission(missions) {
     if (!Array.isArray(missions)) return null;
-    return missions.find(m => String(m?.title || "").toLowerCase().includes("army mode")) || null;
+    return missions.find(m => String((m && m.title) ? m.title : "").toLowerCase().includes("army mode")) || null;
 }
 
 async function autoCompleteArmyModeMissionIfPossible(isArmyEnabled) {
@@ -23,25 +23,25 @@ async function autoCompleteArmyModeMissionIfPossible(isArmyEnabled) {
     if (!isArmyEnabled) return;
 
     // Si estás en file://, no hay API.
-    if (api?.isFileProtocol && api.isFileProtocol()) return;
+    if (api && api.isFileProtocol && api.isFileProtocol()) return;
 
     try {
-        const sessionResp = api?.requestJson ? await api.requestJson("/api/session.php") : null;
-        const session = sessionResp?.data;
-        if (!session?.logged) return;
+        const sessionResp = (api && api.requestJson) ? await api.requestJson("/api/session.php") : null;
+        const session = (sessionResp && sessionResp.data) ? sessionResp.data : null;
+        if (!session || !session.logged) return;
 
-        const missionsResp = api?.requestJson ? await api.requestJson("/api/missions.php") : null;
-        const missionsData = missionsResp?.data;
-        const missions = Array.isArray(missionsData?.missions) ? missionsData.missions : [];
+        const missionsResp = (api && api.requestJson) ? await api.requestJson("/api/missions.php") : null;
+        const missionsData = (missionsResp && missionsResp.data) ? missionsResp.data : null;
+        const missions = (missionsData && Array.isArray(missionsData.missions)) ? missionsData.missions : [];
 
         const armyMission = findArmyModeMission(missions);
-        if (!armyMission?.id) return;
+        if (!armyMission || !armyMission.id) return;
 
         // Si ya estaba completada, no hacemos nada.
         if (String(armyMission.status || "").toLowerCase() === "completed") return;
 
         // WHY: shared postJson keeps headers/body consistent across the app.
-        if (!api?.postJson) return;
+        if (!api || !api.postJson) return;
         await api.postJson("/api/complete-mission.php", {
             mission_id: Number(armyMission.id),
             proof: "Army Mode activado en el portal",

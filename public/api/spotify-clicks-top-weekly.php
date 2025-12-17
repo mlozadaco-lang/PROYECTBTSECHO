@@ -10,13 +10,16 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(false);
 
+require_once __DIR__ . '/_db.php';
+
 api_require_method('GET');
 
 require_once __DIR__ . '/_spotify_clicks.php';
 
 // WHY: keep endpoint small; share table bootstrap with spotify-click.php.
 
-require_once __DIR__ . '/../../config/database.php';
+
+$pdo = api_db();
 
 $limitRaw = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
 $limit = max(1, min(20, $limitRaw > 0 ? $limitRaw : 10));
@@ -62,7 +65,5 @@ try {
     ? 'Falta la tabla portal_spotify_clicks en la base de datos. Crea la tabla y vuelve a probar.'
     : 'Error interno del servidor';
 
-  $debug = getenv('APP_DEBUG') === '1' ? ['debug' => $msg] : [];
-
-  api_fail(500, $publicMessage, ['items' => []] + $debug);
+  api_fail_exception($e, 500, $publicMessage);
 }

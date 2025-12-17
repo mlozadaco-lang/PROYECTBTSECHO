@@ -4,19 +4,19 @@ require_once __DIR__ . '/_api.php';
 api_bootstrap(false);
 
 // WHY: share boilerplate JSON parsing/response helpers across endpoints.
-require_once __DIR__ . "/../../config/database.php";
+require_once __DIR__ . '/_db.php';
+
+$pdo = api_db();
 
 api_require_method('POST');
 
 $data = api_read_json_body();
 
+api_require_fields($data, ['name', 'email', 'password'], 'Completa todos los campos');
+
 $name = trim($data["name"] ?? "");
 $email = trim($data["email"] ?? "");
 $pass  = trim($data["password"] ?? "");
-
-if (!$name || !$email || !$pass) {
-  api_fail(400, "Completa todos los campos");
-}
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
   api_fail(400, "Correo inválido");

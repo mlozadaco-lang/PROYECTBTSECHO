@@ -35,6 +35,8 @@ Después del setup:
   - Top semanal por clics (puede estar vacío si nadie clickeó aún).
   - Top BTS desde Spotify (solo si configuraste `SPOTIFY_CLIENT_ID/SECRET`).
 
+Para exponer (presentación), usa el guion de 5 pasos en el archivo **resumen** (raíz del repo): incluye Login → Misiones → Top por clics → Reset con MailHog.
+
 ## Cambios recientes (MVP)
 
 - Misiones con progreso real:
@@ -51,6 +53,22 @@ Después del setup:
   - Ubicación: en el header, arriba del botón de Login (versión compacta).
 - Música (Top semanal por clics): el portal registra clics a enlaces de Spotify y muestra un Top semanal (últimos 7 días) basado en clics.
 - Música (Top BTS en Spotify): el portal muestra el Top de BTS desde Spotify (sin login).
+
+## Mini-framework (mejoras de estructura)
+
+- **DB centralizada para APIs**: se agregó `public/api/_db.php` con `api_db()` para reutilizar PDO sin repetir `require config/database.php` en cada endpoint.
+- **Tokens más seguros (Auth)**: se agregó soporte de `BTSECHO_AUTH_SECRET` (env) para firmar tokens Bearer (HMAC). El script `scripts/setup.ps1` lo genera automáticamente si falta.
+- **Router opcional (rutas limpias)**: ahora también existen rutas como `GET /api/session` (sin `.php`) mediante `public/api/index.php` + `public/api/.htaccess`.
+  - Compatibilidad: los endpoints clásicos siguen funcionando (`/api/session.php`, `/api/login.php`, etc.).
+  - Requiere `mod_rewrite` y `AllowOverride All` (en Docker ya está habilitado en `database/php/Dockerfile`).
+- **Demo más estable (Forgot Password)**: SweetAlert2 ya no se carga con `async` para evitar carreras; además `auth.js` tiene fallback si `Swal` no está disponible.
+- **Debug por env (local)**: si defines `APP_DEBUG=1` en `database/.env`, las APIs pueden devolver detalle extra en errores (no recomendado para exponer en producción).
+
+## Spotify (mejoras de estabilidad)
+
+- **Cache del token (server-side)**: el token `client_credentials` se cachea en archivo temporal del servidor (por defecto en `sys_get_temp_dir()` dentro del contenedor) para no depender de `$_SESSION`/cookies del navegador.
+  - Variable opcional: `BTSECHO_SPOTIFY_TOKEN_CACHE` para cambiar la ruta del cache.
+- **Sin credenciales**: si `SPOTIFY_CLIENT_ID/SECRET` están vacíos, `GET /api/spotify-bts-top.php` responde `success:false` con HTTP 200 y el front muestra un mensaje en lugar de un 500.
 
 ## Mapa del proyecto (1 minuto)
 

@@ -17,6 +17,15 @@ services:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
+  adminer:
+    image: adminer:4
+    container_name: btsecho_adminer
+    restart: always
+    depends_on:
+      - mysql
+    ports:
+      - "8080:8080"
+
   mailhog:
     image: mailhog/mailhog:v1.0.1
     container_name: btsecho_mailhog
@@ -41,8 +50,11 @@ services:
       DB_NAME: btsecho
       DB_USER: admin
       DB_PASS: admin123
+      BTSECHO_AUTH_SECRET: ${BTSECHO_AUTH_SECRET}
+      APP_DEBUG: ${APP_DEBUG}
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      BTSECHO_SPOTIFY_TOKEN_CACHE: ${BTSECHO_SPOTIFY_TOKEN_CACHE}
     volumes:
       - ..:/var/www:ro
 

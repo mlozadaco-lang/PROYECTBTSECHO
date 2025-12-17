@@ -11,7 +11,10 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
-require_once __DIR__ . "/../../config/database.php";
+require_once __DIR__ . '/_db.php';
+
+
+$pdo = api_db();
 
 api_require_method('GET');
 
@@ -48,6 +51,6 @@ try {
             "next_level_at_total_xp" => $nextLevelAtTotalXp
         ]
     ]);
-} catch (Exception $e) {
-    api_fail(500, "Error interno del servidor");
+} catch (Throwable $e) {
+    api_fail_exception($e, 500, 'Error interno del servidor', ['user_id' => $userId ?? null]);
 }

@@ -3,9 +3,12 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(false);
 
+require_once __DIR__ . '/_db.php';
+
 // WHY: shared helpers (_api.php) remove repeated JSON/header/body parsing boilerplate.
 
-require_once __DIR__ . "/../../config/database.php";
+
+$pdo = api_db();
 
 api_require_method('POST');
 
@@ -43,7 +46,11 @@ function env_enum(string $key, array $allow, string $default): string {
 // WHY: keep compatibility with both JSON body and form POST.
 $raw = api_read_raw_body();
 $body = api_parse_body($raw, true);
-$email = trim((string)($body["email"] ?? ($_POST["email"] ?? "")));
+
+$emailInput = $body["email"] ?? ($_POST["email"] ?? null);
+api_require_fields(['email' => $emailInput], ['email'], 'Correo inválido.');
+
+$email = trim((string)$emailInput);
 
 if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) api_fail(400, "Correo inválido.");
 
@@ -171,8 +178,7 @@ try {
         "message" => "Si el correo existe, te enviaremos un enlace de recuperación 💜"
     ]);
 } catch (Exception $e) {
-    $payload = [];
-    // WHY: in production we avoid leaking SMTP details; debug is opt-in via APP_DEBUG.
-    if (getenv("APP_DEBUG") === "1") $payload["debug"] = $mail->ErrorInfo;
-    api_fail(500, "No se pudo enviar el correo. Intenta más tarde.", $payload);
+    api_fail_exception($e, 500, 'No se pudo enviar el correo. Intenta más tarde.', [
+        'smtp_error' => $mail->ErrorInfo ?? null,
+    ]);
 }

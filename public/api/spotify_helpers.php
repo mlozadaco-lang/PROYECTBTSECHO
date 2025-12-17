@@ -132,8 +132,63 @@ function spotify_token_request(array $params, array $cfg): array {
   ];
 }
 
+function spotify_token_cache_path(): string {
+  $env = getenv('BTSECHO_SPOTIFY_TOKEN_CACHE');
+  if (is_string($env) && trim($env) !== '') return trim($env);
+  $dir = sys_get_temp_dir();
+  if (!is_string($dir) || trim($dir) === '') $dir = '/tmp';
+  return rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . 'btsecho_spotify_app_token.json';
+}
+
+function spotify_read_cached_app_token(): ?string {
+  $path = spotify_token_cache_path();
+  if (!is_file($path)) return null;
+
+  $raw = @file_get_contents($path);
+  if (!is_string($raw) || trim($raw) === '') return null;
+
+  $data = json_decode($raw, true);
+  if (!is_array($data)) return null;
+
+  $token = isset($data['access_token']) ? (string)$data['access_token'] : '';
+  $expiresAt = isset($data['expires_at']) ? (int)$data['expires_at'] : 0;
+
+  if ($token === '' || $expiresAt <= 0) return null;
+  if (time() >= $expiresAt) return null;
+  return $token;
+}
+
+function spotify_write_cached_app_token(string $token, int $expiresAt): void {
+  $path = spotify_token_cache_path();
+  $tmp = $path . '.tmp';
+  $payload = json_encode([
+    'access_token' => $token,
+    'expires_at' => $expiresAt,
+    'cached_at' => time(),
+  ], JSON_UNESCAPED_SLASHES);
+  if (!is_string($payload)) return;
+
+  $fp = @fopen($tmp, 'wb');
+  if (!$fp) return;
+
+  try {
+    @flock($fp, LOCK_EX);
+    @fwrite($fp, $payload);
+  } finally {
+    @fflush($fp);
+    @fclose($fp);
+  }
+
+  @rename($tmp, $path);
+}
+
 function spotify_get_app_access_token_or_null(): ?string {
-  // Token for server-to-server calls (client_credentials). Cached per session.
+  // Token for server-to-server calls (client_credentials).
+  // Prefer server-side file cache so it doesn't depend on browser cookies/sessions.
+  $cached = spotify_read_cached_app_token();
+  if ($cached) return $cached;
+
+  // Fallback: cache per PHP session if available.
   if (isset($_SESSION['spotify_app_access_token'], $_SESSION['spotify_app_expires_at'])) {
     $expiresAt = (int)($_SESSION['spotify_app_expires_at'] ?? 0);
     if (time() < $expiresAt) {
@@ -157,7 +212,11 @@ function spotify_get_app_access_token_or_null(): ?string {
     return null;
   }
 
-  $_SESSION['spotify_app_access_token'] = $accessToken;
-  $_SESSION['spotify_app_expires_at'] = time() + $expiresIn - 30;
+  $expiresAt = time() + $expiresIn - 30;
+  if (isset($_SESSION) && is_array($_SESSION)) {
+    $_SESSION['spotify_app_access_token'] = $accessToken;
+    $_SESSION['spotify_app_expires_at'] = $expiresAt;
+  }
+  spotify_write_cached_app_token((string)$accessToken, (int)$expiresAt);
   return $accessToken;
 }

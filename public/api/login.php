@@ -3,20 +3,21 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
+require_once __DIR__ . '/_db.php';
+
 // WHY: keep endpoint short + consistent JSON errors via helpers.
 
-require_once __DIR__ . "/../../config/database.php";
+
+$pdo = api_db();
 
 api_require_method('POST');
 
 $data = api_read_json_body();
 
+api_require_fields($data, ['email', 'password'], 'Campos obligatorios');
+
 $email = trim($data["email"] ?? "");
 $pass  = trim($data["password"] ?? "");
-
-if (!$email || !$pass) {
-  api_fail(400, "Campos obligatorios");
-}
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
   api_fail(400, "Correo inválido");

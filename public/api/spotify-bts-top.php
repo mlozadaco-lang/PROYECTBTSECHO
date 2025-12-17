@@ -3,6 +3,8 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
+require_once __DIR__ . '/_db.php';
+
 // WHY: centralize JSON header/session and consistent error responses.
 
 api_require_method('GET');
@@ -11,7 +13,11 @@ require_once __DIR__ . '/spotify_helpers.php';
 
 $cfg = spotify_get_env_config();
 if (!$cfg['client_id'] || !$cfg['client_secret']) {
-  api_fail(500, 'Spotify no está configurado en el servidor (faltan credenciales).', ['items' => []]);
+  api_json([
+    'success' => false,
+    'message' => 'Spotify no está configurado en el servidor (faltan credenciales).',
+    'items' => [],
+  ], 200);
 }
 
 $token = spotify_get_app_access_token_or_null();

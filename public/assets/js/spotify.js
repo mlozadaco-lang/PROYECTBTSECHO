@@ -10,20 +10,20 @@
 
   function escapeHtml(str) {
     return String(str)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   function isFileProtocol() {
-    return !!(api?.isFileProtocol && api.isFileProtocol());
+    return !!(api && api.isFileProtocol && api.isFileProtocol());
   }
 
   async function requestJson(url, options) {
     // WHY: unify JSON parsing/error handling across the project (api.js)
-    if (api?.requestJson) return api.requestJson(url, options);
+    if (api && api.requestJson) return api.requestJson(url, options);
 
     const res = await fetch(url, options);
     const data = await res.json().catch(() => null);
@@ -45,8 +45,8 @@
 
       const result = await requestJson(url, { credentials: 'include' });
 
-      const data = result?.data;
-      if (!result?.ok || !data || !data.success) {
+      const data = result && result.data ? result.data : null;
+      if (!result || !result.ok || !data || !data.success) {
         const message = (data && data.message) ? data.message : 'No disponible.';
         btsListEl.textContent = message;
         return;
@@ -96,7 +96,7 @@
       }
 
       // WHY: keepalive + consistent JSON headers, but don't block navigation.
-      if (api?.postJson) {
+      if (api && api.postJson) {
         api.postJson('/api/spotify-click.php', payload || {}, { keepalive: true, credentials: 'include' }).catch(() => {});
         return;
       }

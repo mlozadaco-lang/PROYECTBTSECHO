@@ -3,6 +3,8 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
+require_once __DIR__ . '/_db.php';
+
 // WHY: keep session endpoint minimal and consistent.
 
 api_require_method('GET');
@@ -24,7 +26,7 @@ if (isset($_SESSION["user_id"])) {
 }
 
 // Token-based auth fallback (cookies blocked): query user.
-require_once __DIR__ . "/../../config/database.php";
+$pdo = api_db();
 $stmt = $pdo->prepare("SELECT name, email FROM users WHERE id = ? LIMIT 1");
 $stmt->execute([$userId]);
 $u = $stmt->fetch(PDO::FETCH_ASSOC);

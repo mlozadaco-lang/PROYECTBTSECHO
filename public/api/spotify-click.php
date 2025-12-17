@@ -3,11 +3,14 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
+require_once __DIR__ . '/_db.php';
+
 require_once __DIR__ . '/_spotify_clicks.php';
 
 // WHY: share JSON/session boilerplate + shared table bootstrap between Spotify endpoints.
 
-require_once __DIR__ . '/../../config/database.php';
+
+$pdo = api_db();
 
 api_require_method('POST', 'Usa POST (application/json) para registrar el clic.');
 
@@ -74,5 +77,5 @@ try {
 
   api_ok();
 } catch (Exception $e) {
-  api_fail(500, 'Error interno del servidor');
+  api_fail_exception($e, 500, 'Error interno del servidor');
 }

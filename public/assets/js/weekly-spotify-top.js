@@ -16,7 +16,7 @@
   const musicTopViewEl = document.getElementById("musicTopView");
 
   async function refreshWeeklySpotifyClicksTop() {
-    if (window.BtsEchoApi?.isFileProtocol && window.BtsEchoApi.isFileProtocol()) {
+    if (window.BtsEchoApi && window.BtsEchoApi.isFileProtocol && window.BtsEchoApi.isFileProtocol()) {
       container.textContent = "Disponible al abrir por http://localhost:8000/";
       return;
     }
@@ -26,7 +26,7 @@
       const url = "/api/spotify-clicks-top-weekly.php?limit=7";
 
       // WHY: evitar duplicar fetch + parse JSON + preview cuando no es JSON.
-      const result = api?.requestJson
+      const result = (api && api.requestJson)
         ? await api.requestJson(url)
         : await fetch(url, { headers: { Accept: "application/json" } }).then(async (res) => ({
             ok: res.ok,
@@ -35,14 +35,15 @@
             rawText: "",
           }));
 
-      const data = result?.data;
+      const data = result && result.data ? result.data : null;
       if (!data) {
-        const preview = String(result?.rawText || "").trim().slice(0, 160);
-        container.textContent = `Error (${result?.status || 0}). ${preview || "Respuesta no JSON."}`;
+        const preview = String((result && result.rawText) ? result.rawText : "").trim().slice(0, 160);
+        const status = (result && typeof result.status === 'number') ? result.status : 0;
+        container.textContent = `Error (${status}). ${preview || "Respuesta no JSON."}`;
         return;
       }
 
-      if (!data?.success || !Array.isArray(data.items)) {
+      if (!data.success || !Array.isArray(data.items)) {
         const msg = (data && typeof data.message === "string" && data.message.trim())
           ? data.message.trim()
           : "No se pudo cargar el top.";

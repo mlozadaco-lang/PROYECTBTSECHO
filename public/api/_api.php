@@ -12,6 +12,60 @@
 
 declare(strict_types=1);
 
+function api_is_debug(): bool {
+  $v = getenv('APP_DEBUG');
+  if (!is_string($v)) return false;
+  $v = strtolower(trim($v));
+  return $v === '1' || $v === 'true' || $v === 'yes' || $v === 'on';
+}
+
+function api_log_error(Throwable $e, array $context = []): void {
+  try {
+    $payload = [
+      'ts' => gmdate('c'),
+      'type' => get_class($e),
+      'message' => $e->getMessage(),
+      'file' => $e->getFile(),
+      'line' => $e->getLine(),
+      'context' => $context,
+    ];
+    error_log('[BTSECHO_API] ' . json_encode($payload, JSON_UNESCAPED_SLASHES));
+  } catch (Throwable $_) {
+    // ignore logging failures
+  }
+}
+
+function api_fail_exception(
+  Throwable $e,
+  int $statusCode = 500,
+  string $publicMessage = 'Error interno del servidor',
+  array $context = []
+): void {
+  api_log_error($e, array_merge([
+    'method' => $_SERVER['REQUEST_METHOD'] ?? null,
+    'uri' => $_SERVER['REQUEST_URI'] ?? null,
+  ], $context));
+
+  if (api_is_debug()) {
+    $trace = $e->getTrace();
+    $trace = is_array($trace) ? array_slice($trace, 0, 8) : [];
+    api_json([
+      'success' => false,
+      'message' => $publicMessage,
+      'debug' => [
+        'type' => get_class($e),
+        'detail' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+        'context' => $context,
+        'trace' => $trace,
+      ],
+    ], $statusCode);
+  }
+
+  api_fail($statusCode, $publicMessage);
+}
+
 function api_get_header(string $name): ?string {
   $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
   $val = $_SERVER[$key] ?? null;
@@ -111,6 +165,31 @@ function api_bootstrap(bool $startSession = true): void {
   header('Pragma: no-cache');
   header('Expires: 0');
 
+  // Consistent error behavior for local debugging.
+  if (api_is_debug()) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+  } else {
+    ini_set('display_errors', '0');
+    ini_set('display_startup_errors', '0');
+  }
+
+  static $exceptionHandlerInstalled = false;
+  if (!$exceptionHandlerInstalled) {
+    $exceptionHandlerInstalled = true;
+    set_exception_handler(function (Throwable $e): void {
+      // Avoid recursion if handler throws.
+      try {
+        api_fail_exception($e, 500, 'Error interno del servidor');
+      } catch (Throwable $_) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+        exit;
+      }
+    });
+  }
+
   if ($startSession && session_status() !== PHP_SESSION_ACTIVE) {
     // WHY: Explicit cookie params avoid edge cases where browsers treat missing SameSite as restrictive.
     // This is particularly important when working with localhost during development.
@@ -191,4 +270,29 @@ function api_require_method(string $method, string $message = 'Método no permit
   if ($got !== $want) {
     api_fail(405, $message);
   }
+}
+
+function api_require_fields(array $data, array $fields, string $message = 'Faltan campos requeridos'): array {
+  $missing = [];
+  foreach ($fields as $f) {
+    $k = is_string($f) ? $f : '';
+    if ($k === '') continue;
+    if (!array_key_exists($k, $data)) {
+      $missing[] = $k;
+      continue;
+    }
+    $v = $data[$k];
+    if ($v === null) {
+      $missing[] = $k;
+      continue;
+    }
+    if (is_string($v) && trim($v) === '') {
+      $missing[] = $k;
+      continue;
+    }
+  }
+  if (!empty($missing)) {
+    api_fail(400, $message, ['missing' => $missing]);
+  }
+  return $data;
 }

@@ -14,9 +14,12 @@
 require_once __DIR__ . '/_api.php';
 api_bootstrap(true);
 
+require_once __DIR__ . '/_db.php';
+
 // WHY: api_bootstrap/api_ok/api_fail keep JSON output consistent across endpoints.
 
-require_once __DIR__ . "/../../config/database.php";
+
+$pdo = api_db();
 
 api_require_method('GET');
 
@@ -64,6 +67,6 @@ try {
     api_ok([
         "missions" => $missions
     ]);
-} catch (Exception $e) {
-    api_fail(500, "Error interno del servidor", ["missions" => []]);
+} catch (Throwable $e) {
+    api_fail_exception($e, 500, 'Error interno del servidor', ['missions' => [], 'user_id' => $userId ?? null]);
 }

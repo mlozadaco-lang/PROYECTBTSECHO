@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // WHY: keep the file:// guard, but prefer the shared helper so behavior matches other pages.
     const api = window.BtsEchoApi;
-    if (api?.isFileProtocol ? api.isFileProtocol() : (location.protocol === "file:")) {
+    if ((api && api.isFileProtocol) ? api.isFileProtocol() : (location.protocol === "file:")) {
         messageDiv.textContent = "Abre esta página desde http://localhost:8000/ para poder llamar a /api/reset-password.php";
         messageDiv.style.color = "red";
         return;
@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         try {
             // WHY: shared helper centralizes headers + JSON parsing.
-            const result = api?.postJson
+            const result = (api && api.postJson)
                 ? await api.postJson("/api/reset-password.php", { token: resetToken, password })
                 : await fetch("/api/reset-password.php", {
                     method: "POST",

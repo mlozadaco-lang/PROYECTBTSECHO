@@ -20,6 +20,38 @@ URLs:
 - Portal: `http://localhost:8000/`
 - MailHog (bandeja): `http://localhost:8025/`
 
+---
+
+## Checklist de demo (5 pasos, guion rápido)
+
+1) **Arranque y verificación (30s)**
+  - Ejecuta `powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -NonInteractive`.
+  - Abre `http://localhost:8000/` y confirma que el portal carga.
+
+2) **Registro/Login (1 min)**
+  - Abre el modal de Login y usa **Registro** para crear un usuario.
+  - Inicia sesión y muestra que el header cambia (nombre/estado) y que la sesión queda activa.
+
+3) **Misiones + progreso (1–2 min)**
+  - Entra a `Misiones`.
+  - Completa 1 misión (ingresa un `proof` simple) y muestra:
+    - que queda marcada como completada,
+    - y que sube XP/nivel (barra de progreso).
+
+4) **Top semanal por clics (1 min)**
+  - En el portal, ve a “Top musical” y selecciona **Top semanal (clics)**.
+  - Luego ve al Top BTS/links de Spotify y haz 2–3 clics a un track.
+  - Regresa al **Top semanal (clics)** y refresca: debe reflejar el ranking por clics (últimos 7 días).
+
+5) **Forgot/Reset password con MailHog (2 min)**
+  - En Login, usa “Olvidé mi contraseña” con el correo del usuario.
+  - Abre MailHog `http://localhost:8025/`, entra al correo recibido y abre el link de reset.
+  - Cambia la contraseña y vuelve al portal para iniciar sesión con la nueva.
+
+Notas por si preguntan:
+- Si “Top BTS en Spotify” no carga, normalmente es falta de `SPOTIFY_CLIENT_ID/SECRET` o red sin Internet; el **Top semanal por clics** sigue funcionando 100% local.
+- Evitar abrir con `file://` cuando se va a usar `/api/*`.
+
 ## Cambios recientes (MVP)
 
 - Misiones (progreso real):
@@ -89,6 +121,10 @@ Además, el compose incluye **MailHog** para que el envío de correos funcione �
 - No abrir el proyecto con `file://` si vas a usar `/api/*`. El front hace `fetch('/api/...')` y eso requiere HTTP.
 
 ## Flujo actual (end-to-end)
+
+Nota (mini-framework): además de los endpoints clásicos `/api/*.php`, existe un **router opcional** que permite rutas limpias:
+- Ejemplo: `/api/session` (sin `.php`) sigue devolviendo JSON.
+- Compatibilidad: `/api/session.php` sigue funcionando igual.
 
 ### Portal (`public/index.html`)
 
